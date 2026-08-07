@@ -34,13 +34,17 @@ export const WelcomeView = ({
         <WelcomeImage />
 
         <p className="text-foreground max-w-prose pt-1 leading-6 font-medium">
-          Chat live with your voice AI agent
+          Meet MediSathi
+          <br />
+          <span className="text-muted-foreground text-sm font-normal">
+            Your AI Healthcare Voice Companion
+          </span>
         </p>
 
         <Button
           size="lg"
           onClick={onStartCall}
-          className="mt-6 w-64 rounded-full font-mono text-xs font-bold tracking-wider uppercase"
+          className="mt-6 w-64 rounded-full font-semibold tracking-wider uppercase"
         >
           {startButtonText}
         </Button>
