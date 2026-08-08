@@ -5,25 +5,25 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --radius: 1rem;
+  --background: #030712;
+  --foreground: #f1f5f9;
+  --card: rgb(255 255 255 / 4%);
+  --card-foreground: #f1f5f9;
+  --popover: #07101f;
+  --popover-foreground: #f1f5f9;
+  --primary: #22d3ee;
+  --primary-foreground: #03111a;
+  --secondary: rgb(255 255 255 / 6%);
+  --secondary-foreground: #e2e8f0;
+  --muted: rgb(255 255 255 / 5%);
+  --muted-foreground: #94a3b8;
+  --accent: rgb(255 255 255 / 8%);
+  --accent-foreground: #f8fafc;
+  --destructive: #fb7185;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: #22d3ee;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -40,24 +40,24 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.269 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.371 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: #030712;
+  --foreground: #f1f5f9;
+  --card: rgb(255 255 255 / 4%);
+  --card-foreground: #f1f5f9;
+  --popover: #07101f;
+  --popover-foreground: #f1f5f9;
+  --primary: #22d3ee;
+  --primary-foreground: #03111a;
+  --secondary: rgb(255 255 255 / 6%);
+  --secondary-foreground: #e2e8f0;
+  --muted: rgb(255 255 255 / 5%);
+  --muted-foreground: #94a3b8;
+  --accent: rgb(255 255 255 / 8%);
+  --accent-foreground: #f8fafc;
+  --destructive: #fb7185;
+  --border: rgb(255 255 255 / 10%);
+  --input: rgb(255 255 255 / 12%);
+  --ring: #22d3ee;
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);
   --chart-3: oklch(0.769 0.188 70.08);
@@ -120,5 +120,95 @@
   }
   body {
     @apply bg-background text-foreground;
+    color-scheme: dark;
+    background-image:
+      radial-gradient(circle at 8% 12%, rgb(34 211 238 / 12%), transparent 22rem),
+      radial-gradient(circle at 92% 14%, rgb(139 92 246 / 12%), transparent 24rem),
+      radial-gradient(circle at 50% 100%, rgb(20 184 166 / 6%), transparent 30rem);
   }
+}
+
+@keyframes medipulse {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.32;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.08;
+  }
+}
+@keyframes mediscan {
+  0%,
+  100% {
+    transform: scaleY(0.35);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+.medisathi-pulse {
+  animation: medipulse 2.4s ease-in-out infinite;
+}
+.medisathi-bar {
+  animation: mediscan 850ms ease-in-out infinite alternate;
+  transform-origin: center;
+}
+
+.medisathi-glass {
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid rgb(255 255 255 / 11%);
+  box-shadow:
+    0 20px 60px rgb(0 0 0 / 35%),
+    inset 0 1px 0 rgb(255 255 255 / 5%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.medisathi-pill {
+  background: rgb(255 255 255 / 4%);
+  border: 1px solid rgb(255 255 255 / 12%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.medisathi-orb {
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgb(34 211 238 / 22%),
+    rgb(255 255 255 / 4%) 42%,
+    rgb(139 92 246 / 12%) 100%
+  );
+  border: 1px solid rgb(103 232 249 / 35%);
+  box-shadow:
+    0 0 0 8px rgb(34 211 238 / 4%),
+    0 0 42px rgb(34 211 238 / 22%),
+    0 0 70px rgb(139 92 246 / 14%),
+    inset 0 1px 1px rgb(255 255 255 / 20%);
+  backdrop-filter: blur(18px);
+}
+
+.medisathi-action {
+  background: rgb(8 47 73 / 55%) !important;
+  border: 1px solid rgb(34 211 238 / 55%) !important;
+  box-shadow:
+    0 0 28px rgb(34 211 238 / 16%),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
+  color: #cffafe !important;
+  backdrop-filter: blur(14px);
+}
+
+.medisathi-action:hover {
+  background: rgb(8 47 73 / 78%) !important;
+  box-shadow:
+    0 0 34px rgb(34 211 238 / 25%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
+}
+.medisathi-danger {
+  background: rgb(76 5 25 / 35%) !important;
+  border: 1px solid rgb(251 113 133 / 45%) !important;
+  box-shadow: 0 0 24px rgb(251 113 133 / 10%);
+  color: #fecdd3 !important;
 }

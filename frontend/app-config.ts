@@ -33,23 +33,25 @@ export interface AppConfig {
 }
 
 export const APP_CONFIG_DEFAULTS: AppConfig = {
-  companyName: 'Murf AI',
-  pageTitle: 'Voice Agent Starter',
-  pageDescription: 'A voice agent powered by Murf Falcon — the fastest TTS API',
+  companyName: 'MediSathi',
+  pageTitle: 'MediSathi | Your Friendly AI Health Companion',
+  pageDescription: 'Simple, general health information and guidance by voice.',
 
   supportsChatInput: true,
-  supportsVideoInput: true,
-  supportsScreenShare: true,
+  supportsVideoInput: false,
+  supportsScreenShare: false,
   isPreConnectBufferEnabled: true,
 
   logo: '/murf-logo.svg',
-  accent: '#6366F1',
+  accent: '#0f8b8d',
   logoDark: '/murf-logo-dark.svg',
-  accentDark: '#818cf8',
-  startButtonText: 'Talk to MediSathi',
+  accentDark: '#2dd4bf',
+  startButtonText: 'Start Conversation',
 
   // optional: audio visualization configuration
-  // audioVisualizerType: 'bar',
+  audioVisualizerType: 'aura',
+  audioVisualizerColor: '#0f8b8d',
+  audioVisualizerColorDark: '#2dd4bf',
   // audioVisualizerColor: '#002cf2',
   // audioVisualizerColorDark: '#1fd5f9',
   // audioVisualizerColorShift: 0.3,

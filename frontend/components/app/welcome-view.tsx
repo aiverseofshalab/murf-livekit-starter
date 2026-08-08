@@ -1,69 +1,173 @@
+import { Activity, HeartPulse, Mic, RefreshCw, ShieldCheck, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-function WelcomeImage() {
-  return (
-    <svg
-      width="64"
-      height="64"
-      viewBox="0 0 64 64"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      className="text-fg0 mb-4 size-16"
-    >
-      <path
-        d="M15 24V40C15 40.7957 14.6839 41.5587 14.1213 42.1213C13.5587 42.6839 12.7956 43 12 43C11.2044 43 10.4413 42.6839 9.87868 42.1213C9.31607 41.5587 9 40.7957 9 40V24C9 23.2044 9.31607 22.4413 9.87868 21.8787C10.4413 21.3161 11.2044 21 12 21C12.7956 21 13.5587 21.3161 14.1213 21.8787C14.6839 22.4413 15 23.2044 15 24ZM22 5C21.2044 5 20.4413 5.31607 19.8787 5.87868C19.3161 6.44129 19 7.20435 19 8V56C19 56.7957 19.3161 57.5587 19.8787 58.1213C20.4413 58.6839 21.2044 59 22 59C22.7956 59 23.5587 58.6839 24.1213 58.1213C24.6839 57.5587 25 56.7957 25 56V8C25 7.20435 24.6839 6.44129 24.1213 5.87868C23.5587 5.31607 22.7956 5 22 5ZM32 13C31.2044 13 30.4413 13.3161 29.8787 13.8787C29.3161 14.4413 29 15.2044 29 16V48C29 48.7957 29.3161 49.5587 29.8787 50.1213C30.4413 50.6839 31.2044 51 32 51C32.7956 51 33.5587 50.6839 34.1213 50.1213C34.6839 49.5587 35 48.7957 35 48V16C35 15.2044 34.6839 14.4413 34.1213 13.8787C33.5587 13.3161 32.7956 13 32 13ZM42 21C41.2043 21 40.4413 21.3161 39.8787 21.8787C39.3161 22.4413 39 23.2044 39 24V40C39 40.7957 39.3161 41.5587 39.8787 42.1213C40.4413 42.6839 41.2043 43 42 43C42.7957 43 43.5587 42.6839 44.1213 42.1213C44.6839 41.5587 45 40.7957 45 40V24C45 23.2044 44.6839 22.4413 44.1213 21.8787C43.5587 21.3161 42.7957 21 42 21ZM52 17C51.2043 17 50.4413 17.3161 49.8787 17.8787C49.3161 18.4413 49 19.2044 49 20V44C49 44.7957 49.3161 45.5587 49.8787 46.1213C50.4413 46.6839 51.2043 47 52 47C52.7957 47 53.5587 46.6839 54.1213 46.1213C54.6839 45.5587 55 44.7957 55 44V20C55 19.2044 54.6839 18.4413 54.1213 17.8787C53.5587 17.3161 52.7957 17 52 17Z"
-        fill="currentColor"
-      />
-    </svg>
-  );
-}
+type WelcomeStatus = 'ready' | 'connecting' | 'ended' | 'microphone-error' | 'connection-error';
 
 interface WelcomeViewProps {
   startButtonText: string;
   onStartCall: () => void;
+  status: WelcomeStatus;
 }
 
 export const WelcomeView = ({
   startButtonText,
   onStartCall,
+  status,
   ref,
-}: React.ComponentProps<'div'> & WelcomeViewProps) => {
-  return (
-    <div ref={ref}>
-      <section className="bg-background flex flex-col items-center justify-center text-center">
-        <WelcomeImage />
-
-        <p className="text-foreground max-w-prose pt-1 leading-6 font-medium">
-          Meet MediSathi
-          <br />
-          <span className="text-muted-foreground text-sm font-normal">
-            Your AI Healthcare Voice Companion
-          </span>
-        </p>
-
-        <Button
-          size="lg"
-          onClick={onStartCall}
-          className="mt-6 w-64 rounded-full font-semibold tracking-wider uppercase"
-        >
-          {startButtonText}
-        </Button>
-      </section>
-
-      <div className="fixed bottom-5 left-0 flex w-full items-center justify-center">
-        <p className="text-muted-foreground max-w-prose pt-1 text-xs leading-5 font-normal text-pretty md:text-sm">
-          Need help getting set up? Check out the{' '}
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://docs.livekit.io/agents/start/voice-ai/"
-            className="underline"
-          >
-            Voice AI quickstart
-          </a>
-          .
-        </p>
+}: React.ComponentProps<'div'> & WelcomeViewProps) => (
+  <div ref={ref} className="min-h-svh overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+    <header className="mx-auto flex w-full max-w-6xl items-center justify-between">
+      <div className="flex items-center gap-3">
+        <span className="medisathi-orb grid size-10 place-items-center rounded-xl text-cyan-200">
+          <HeartPulse aria-hidden="true" />
+        </span>
+        <span>
+          <strong className="block text-lg tracking-tight">MediSathi</strong>
+          <span className="text-muted-foreground text-xs">Your Friendly AI Health Companion</span>
+        </span>
       </div>
+      <span className="medisathi-pill hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-cyan-100 sm:flex">
+        <ShieldCheck className="size-4" /> Private &amp; supportive
+      </span>
+    </header>
+    <main className="mx-auto flex w-full max-w-4xl flex-col items-center pt-10 pb-10 text-center sm:pt-16">
+      <span className="medisathi-pill mb-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide text-cyan-100">
+        <Activity className="size-3.5" /> AI VOICE HEALTHCARE ASSISTANT
+      </span>
+      <h1 className="max-w-2xl text-4xl font-bold tracking-tight text-slate-50 sm:text-5xl">
+        A calm, simple place to talk about{' '}
+        <span className="bg-linear-to-r from-cyan-200 to-violet-300 bg-clip-text text-transparent">
+          your health.
+        </span>
+      </h1>
+      <p className="text-muted-foreground mt-5 max-w-xl text-base leading-7 sm:text-lg">
+        Talk naturally with MediSathi to get simple, general health information and guidance.
+      </p>
+      <section
+        aria-live="polite"
+        className="medisathi-glass mt-8 w-full max-w-xl rounded-3xl p-6 sm:p-8"
+      >
+        {status === 'microphone-error' ? (
+          <MicrophoneError onTryAgain={onStartCall} />
+        ) : status === 'connection-error' ? (
+          <ConnectionError onTryAgain={onStartCall} />
+        ) : (
+          <WelcomeAction
+            status={status}
+            startButtonText={startButtonText}
+            onStartCall={onStartCall}
+          />
+        )}
+      </section>
+      <FeatureCards />
+      <p className="medisathi-glass mt-8 max-w-3xl rounded-2xl px-4 py-3 text-left text-xs leading-5 text-slate-300 sm:text-sm">
+        <span className="text-cyan-200">⚕️</span> MediSathi provides general health information and
+        is not a substitute for professional medical advice. For emergencies or serious symptoms,
+        contact a qualified healthcare professional or local emergency service.
+      </p>
+    </main>
+    <footer className="border-primary/10 text-muted-foreground mx-auto flex max-w-6xl justify-center border-t pt-5 text-xs">
+      MediSathi · Powered by Murf Falcon
+    </footer>
+  </div>
+);
+
+function WelcomeAction({ status, startButtonText, onStartCall }: WelcomeViewProps) {
+  const connecting = status === 'connecting';
+  const ended = status === 'ended';
+  return (
+    <>
+      <div className="medisathi-orb mx-auto mb-5 grid size-20 place-items-center rounded-full text-cyan-100">
+        {connecting ? (
+          <span className="border-primary size-6 animate-spin rounded-full border-2 border-t-transparent" />
+        ) : ended ? (
+          <RefreshCw className="size-7" />
+        ) : (
+          <Mic className="size-7" />
+        )}
+      </div>
+      <h2 className="text-xl font-bold">
+        {connecting
+          ? 'Connecting to MediSathi...'
+          : ended
+            ? 'Conversation ended'
+            : 'MediSathi is ready'}
+      </h2>
+      <p className="text-muted-foreground mt-2 text-sm">
+        {connecting
+          ? 'Please wait while we connect you.'
+          : ended
+            ? 'Thank you for talking with MediSathi.'
+            : 'Tap the button below to start your conversation.'}
+      </p>
+      <Button
+        size="lg"
+        disabled={connecting}
+        onClick={onStartCall}
+        className="medisathi-action mt-6 h-12 w-full rounded-xl text-base font-semibold"
+      >
+        <Mic className="size-5" /> {ended ? 'Start Again' : startButtonText}
+      </Button>
+    </>
+  );
+}
+function MicrophoneError({ onTryAgain }: { onTryAgain: () => void }) {
+  return (
+    <div className="text-left">
+      <div className="mb-4 grid size-12 place-items-center rounded-full border border-rose-400/30 bg-rose-500/10 text-rose-300">
+        <Mic className="size-6" />
+      </div>
+      <h2 className="text-xl font-bold">Microphone Access Required</h2>
+      <p className="text-muted-foreground mt-2 text-sm">
+        MediSathi needs microphone access to hear you.
+      </p>
+      <ol className="text-muted-foreground mt-4 list-decimal space-y-1 pl-5 text-sm">
+        <li>Click the microphone icon in your browser&apos;s address bar.</li>
+        <li>Allow microphone access for this website.</li>
+        <li>Reload the page and try again.</li>
+      </ol>
+      <Button onClick={onTryAgain} className="medisathi-action mt-6 w-full rounded-xl">
+        <RefreshCw /> Try Again
+      </Button>
     </div>
   );
-};
+}
+function ConnectionError({ onTryAgain }: { onTryAgain: () => void }) {
+  return (
+    <div>
+      <h2 className="text-xl font-bold">We couldn&apos;t connect to MediSathi</h2>
+      <p className="text-muted-foreground mt-2 text-sm">
+        Please check your internet connection and try again.
+      </p>
+      <Button onClick={onTryAgain} className="medisathi-action mt-6 w-full rounded-xl">
+        <RefreshCw /> Try Again
+      </Button>
+    </div>
+  );
+}
+function FeatureCards() {
+  const cards = [
+    [Stethoscope, 'Symptom Guidance', 'Discuss common symptoms in simple language.'],
+    [HeartPulse, 'Health Information', 'Learn about general health topics and precautions.'],
+    [Mic, 'Simple Conversations', 'Ask questions naturally using your voice.'],
+    [
+      ShieldCheck,
+      'Privacy First',
+      'Your conversation experience is designed with privacy in mind.',
+    ],
+  ] as const;
+  return (
+    <div className="mt-10 grid w-full grid-cols-1 gap-3 text-left sm:grid-cols-2">
+      {cards.map(([Icon, title, copy]) => (
+        <article
+          key={title}
+          className="medisathi-glass rounded-2xl p-4 transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/35 hover:shadow-[0_18px_45px_rgba(34,211,238,0.10)]"
+        >
+          <Icon className="mb-3 size-5 text-cyan-200" />
+          <h3 className="font-semibold text-slate-100">{title}</h3>
+          <p className="text-muted-foreground mt-1 text-sm leading-5">{copy}</p>
+        </article>
+      ))}
+    </div>
+  );
+}
