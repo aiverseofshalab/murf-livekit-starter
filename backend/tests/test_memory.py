@@ -1,4 +1,4 @@
-from memory import CallerMemoryStore
+from src.memory import CallerMemoryStore
 
 
 def test_memory_persists_and_preserves_unprovided_fields(tmp_path) -> None:
