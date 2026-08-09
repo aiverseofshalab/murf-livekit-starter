@@ -13,6 +13,17 @@ import { useAgentErrors } from '@/hooks/useAgentErrors';
 import { useDebugMode } from '@/hooks/useDebug';
 import { getSandboxTokenSource } from '@/lib/utils';
 
+const MEDISATHI_USER_ID_KEY = 'medisathi_user_id';
+
+function getMediSathiUserId(): string {
+  const savedId = window.localStorage.getItem(MEDISATHI_USER_ID_KEY);
+  if (savedId) return savedId;
+
+  const userId = crypto.randomUUID();
+  window.localStorage.setItem(MEDISATHI_USER_ID_KEY, userId);
+  return userId;
+}
+
 const IN_DEVELOPMENT = process.env.NODE_ENV !== 'production';
 
 function AppSetup() {
@@ -28,9 +39,18 @@ interface AppProps {
 
 export function App({ appConfig }: AppProps) {
   const tokenSource = useMemo(() => {
+    const userId = getMediSathiUserId();
     return typeof process.env.NEXT_PUBLIC_CONN_DETAILS_ENDPOINT === 'string'
-      ? getSandboxTokenSource(appConfig)
-      : TokenSource.endpoint('/api/token');
+      ? getSandboxTokenSource(appConfig, userId)
+      : TokenSource.custom(async () => {
+          const response = await fetch('/api/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId }),
+          });
+          if (!response.ok) throw new Error('Unable to create a LiveKit token.');
+          return response.json();
+        });
   }, [appConfig]);
 
   const session = useSession(

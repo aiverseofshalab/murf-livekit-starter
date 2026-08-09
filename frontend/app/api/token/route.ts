@@ -43,10 +43,15 @@ export async function POST(req: Request) {
         { ignoreUnknownFields: true }
       );
     }
-      
+
     // Generate participant token
+    const userId = typeof body?.user_id === 'string' ? body.user_id : '';
+    if (!/^[a-f0-9-]{36}$/i.test(userId)) {
+      throw new Error('A valid persistent user ID is required');
+    }
+
     const participantName = 'user';
-    const participantIdentity = `voice_assistant_user_${Math.floor(Math.random() * 10_000)}`;
+    const participantIdentity = `medisathi_${userId}`;
     const roomName = `voice_assistant_room_${Math.floor(Math.random() * 10_000)}`;
 
     const participantToken = await createParticipantToken(

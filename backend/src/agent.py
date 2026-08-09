@@ -8,13 +8,16 @@ from livekit.agents import (
     AgentSession,
     JobContext,
     JobProcess,
+    RunContext,
     cli,
-    inference,
-    tokenize,
+    function_tool,
     room_io,
+    tokenize,
 )
-from livekit.plugins import murf, silero, google, deepgram, noise_cancellation
+from livekit.plugins import deepgram, google, murf, noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
+
+from memory import MEMORY_FIELDS, CallerMemoryStore
 
 logger = logging.getLogger("agent")
 
@@ -23,7 +26,7 @@ load_dotenv(".env.local")
 
 SYSTEM_PROMPT = """
 # =====================================================
-# MediSathi – AI Healthcare Voice Assistant
+# MediSathi - AI Healthcare Voice Assistant
 # =====================================================
 
 IDENTITY
@@ -41,11 +44,25 @@ You never replace licensed medical professionals.
 
 ----------------------------------------------------
 
-FIRST GREETING
+MEMORY AND CONSENT
 
-Always begin a new conversation by saying:
+At the beginning of every call, call lookup_caller before greeting. It looks up only
+the current caller. If it finds a caller, greet them naturally by their saved name;
+never mention records, databases, or identifiers. If no caller is found, welcome them
+as a new caller and ask what they would like to be called.
 
-"Hello! I'm MediSathi, your AI Healthcare Voice Assistant. I can help you understand symptoms, explain medical information, suggest healthy lifestyle practices, and guide you toward the right healthcare professional. How can I help you today?"
+Never claim to remember anything unless lookup_caller returned it.
+Never save personal or health information without asking for, and receiving, a clear
+yes in the current conversation. Explain that you can remember only a name, preferred
+language, age band, general ongoing conditions, and a brief high-level outcome for a
+future visit. If the caller declines, do not call save_caller_memory.
+
+After explicit consent, collect only details that are naturally useful; do not
+interrogate the caller. Call save_caller_memory only with details actually provided,
+using empty strings for unknown fields. Do not store a transcript, exact birth date,
+contact details, identifiers, medication details, or detailed medical notes. If a
+caller updates a detail and gives consent, save the new value; blank fields preserve
+the existing values.
 
 ----------------------------------------------------
 
@@ -300,10 +317,71 @@ Always prioritize user safety over completing the conversation.
 
 
 class Assistant(Agent):
-    def __init__(self) -> None:
+    def __init__(self, user_id: str = "console-user") -> None:
+        self.user_id = user_id
+        self.memory = CallerMemoryStore()
         super().__init__(instructions=SYSTEM_PROMPT)
 
-   
+    async def on_enter(self) -> None:
+        """Look up the caller through the same tool exposed to the LLM before greeting."""
+        memory = await self.lookup_caller()
+        if memory.get("found") and memory.get("name"):
+            greeting = (
+                f"Namaste {memory['name']}, welcome back. It's nice to speak with you again. "
+                "How are you feeling today?"
+            )
+        else:
+            greeting = (
+                "Namaste! I'm MediSathi, your AI Healthcare Voice Assistant. "
+                "It's nice to meet you. What should I call you?"
+            )
+        self.session.say(greeting)
+
+    async def on_exit(self) -> None:
+        self.memory.touch(self.user_id)
+
+    @function_tool
+    async def lookup_caller(self) -> dict[str, object]:
+        """Look up the current caller's consented, minimal healthcare memory."""
+        return self.memory.lookup(self.user_id)
+
+    @function_tool
+    async def save_caller_memory(
+        self,
+        ctx: RunContext,
+        name: str = "",
+        language_preference: str = "",
+        age_band: str = "",
+        ongoing_conditions: str = "",
+        last_triage_outcome: str = "",
+        consent_confirmed: bool = False,
+    ) -> dict[str, object]:
+        """Save minimal caller details only after the caller explicitly agreed this call."""
+        del ctx
+        if not consent_confirmed:
+            return {
+                "success": False,
+                "message": "Do not save memory until the caller explicitly says yes.",
+            }
+
+        fields = {
+            "name": name,
+            "language_preference": language_preference,
+            "age_band": age_band,
+            "ongoing_conditions": ongoing_conditions,
+            "last_triage_outcome": last_triage_outcome,
+        }
+        for field in MEMORY_FIELDS:
+            value = fields[field]
+            if not isinstance(value, str) or len(value.strip()) > 240:
+                return {"success": False, "message": f"Invalid {field} value."}
+        if not any(value.strip() for value in fields.values()):
+            return {
+                "success": False,
+                "message": "No caller details were provided to save.",
+            }
+
+        return self.memory.save(self.user_id, fields)
 
 
 server = AgentServer()
@@ -318,36 +396,31 @@ server.setup_fnc = prewarm
 
 @server.rtc_session(agent_name="my-agent")
 async def my_agent(ctx: JobContext):
-    
+    await ctx.connect()
+    participant = await ctx.wait_for_participant()
     ctx.log_context_fields = {
         "room": ctx.room.name,
     }
 
     session = AgentSession(
-       
         stt=deepgram.STT(model="nova-3"),
-        
         llm=google.LLM(
-                model="gemini-3.5-flash-lite",
-            ),
-        
+            model="gemini-3.5-flash-lite",
+        ),
         tts=murf.TTS(
-                voice="Anisha", 
-                locale="en-IN",
-                style="Conversation",
-                tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
-                text_pacing=True
-            ),
-    
+            voice="Anisha",
+            locale="en-IN",
+            style="Conversation",
+            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
+            text_pacing=True,
+        ),
         turn_detection=MultilingualModel(),
         vad=ctx.proc.userdata["vad"],
-  
         preemptive_generation=True,
     )
 
-    
     await session.start(
-        agent=Assistant(),
+        agent=Assistant(user_id=participant.identity),
         room=ctx.room,
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
@@ -360,9 +433,6 @@ async def my_agent(ctx: JobContext):
             ),
         ),
     )
-
-   
-    await ctx.connect()
 
 
 if __name__ == "__main__":

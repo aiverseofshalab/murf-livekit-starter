@@ -137,7 +137,7 @@ function ConnectionError({ onTryAgain }: { onTryAgain: () => void }) {
     <div>
       <h2 className="text-xl font-bold">We couldn&apos;t connect to MediSathi</h2>
       <p className="text-muted-foreground mt-2 text-sm">
-        Please check your internet connection and try again.
+        Please check your internet connection and try again .
       </p>
       <Button onClick={onTryAgain} className="medisathi-action mt-6 w-full rounded-xl">
         <RefreshCw /> Try Again
