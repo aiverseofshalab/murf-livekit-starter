@@ -37,9 +37,16 @@ EMERGENCY_FLAGS = {
     "repeated seizure": "ongoing or repeated seizure",
     "seizure without recovery": "ongoing or repeated seizure",
     "allergic reaction with breathing": "severe allergic reaction",
+    "severe allergic reaction": "severe allergic reaction",
     "throat swelling": "severe allergic reaction",
     "swelling of the tongue": "severe allergic reaction",
     "severe sudden confusion": "severe sudden confusion",
+    "poisoning": "possible poisoning",
+    "serious burn": "serious burn",
+    "severe burn": "serious burn",
+    "suicidal thoughts": "immediate mental-health safety concern",
+    "want to kill myself": "immediate mental-health safety concern",
+    "self harm": "immediate mental-health safety concern",
 }
 
 URGENT_SIGNALS = (
