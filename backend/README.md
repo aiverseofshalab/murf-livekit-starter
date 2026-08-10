@@ -188,6 +188,40 @@ Tests are in [`tests/test_agent.py`](tests/test_agent.py) and use LLM-as-judge e
 
 To run tests in CI, you'll need to add `LIVEKIT_URL`, `LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` as repository secrets.
 
+## Day 5: Symptom triage
+
+MediSathi includes `assess_symptom_triage`, a conservative tool that it calls when a
+caller asks how serious symptoms are, whether they should see a doctor, or what level
+of care they need. It returns one of `EMERGENCY`, `URGENT`, `ROUTINE`, `SELF_CARE`, or
+`UNKNOWN`, then the agent turns that result into a natural spoken response.
+
+This is **LOCAL**, not a live healthcare API. The transparent deterministic ruleset in
+[`src/triage.py`](src/triage.py) is informed by [NHS emergency-care guidance](https://www.nhs.uk/nhs-services/urgent-and-emergency-care-services/when-to-call-999/) and [CDC emergency warning signs](https://www.cdc.gov/respiratory-viruses/signs-symptoms/index.html).
+Every result identifies the source, UTC assessment timestamp, and `LOCAL_RULESET` data
+mode. No additional environment variables are required.
+
+For example, “I have severe chest pain and cannot breathe—how serious is this?” invokes
+the tool and yields an `EMERGENCY` result with immediate emergency-care guidance. A
+result has this shape:
+
+```text
+{ success: true, triage_level: "URGENT", reason: "...", recommended_action: "...",
+  red_flags: [], source: "MediSathi local clinical triage ruleset v1.0 (...) ",
+  data_timestamp: "...", data_mode: "LOCAL_RULESET", disclaimer: "This is triage support, not a diagnosis." }
+```
+
+If the ruleset cannot process the request, it returns a structured failure with
+`success: false` and `UNKNOWN`; the agent must say it cannot safely classify the
+situation and give the emergency-safe fallback. The tool never makes a diagnosis and
+does not save symptoms or triage details to caller memory. Day 4 memory remains behind
+the existing explicit-consent flow.
+
+Run the full backend suite, including deterministic triage tests, with:
+
+```bash
+uv run pytest
+```
+
 ## Deployment
 
 ### Railway

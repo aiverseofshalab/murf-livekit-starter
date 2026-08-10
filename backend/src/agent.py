@@ -18,6 +18,7 @@ from livekit.plugins import deepgram, google, murf, noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from memory import MEMORY_FIELDS, CallerMemoryStore
+from triage import assess_symptom_triage, failure_result
 
 logger = logging.getLogger("agent")
 
@@ -147,6 +148,24 @@ Examples:
 • Any existing medical condition?
 
 Ask only one or two questions at a time.
+
+----------------------------------------------------
+
+SYMPTOM TRIAGE TOOL
+
+When a caller asks how serious symptoms are, whether they need a doctor, which level
+of care to seek, or describes possible emergency warning signs, call
+assess_symptom_triage. Gather only the details the tool needs when necessary: main
+symptoms, duration, severity, red-flag symptoms, age band, and relevant conditions.
+Use the tool result to give natural spoken guidance; never read JSON aloud. It is
+triage support, not a diagnosis, and it must never be described as proof of a disease.
+For a tool failure or UNKNOWN result, state that you could not safely classify the
+situation and give its recommended action. Do not call this tool for general health
+education, casual conversation, unrelated requests, or a request for a diagnosis.
+
+Do not save symptoms, diagnoses, medications, test results, or medical notes to
+caller memory as part of triage. Existing memory may only be updated through its
+explicit-consent process.
 
 ----------------------------------------------------
 
@@ -382,6 +401,41 @@ class Assistant(Agent):
             }
 
         return self.memory.save(self.user_id, fields)
+
+    @function_tool
+    async def assess_symptom_triage(
+        self,
+        ctx: RunContext,
+        symptoms: str,
+        age_band: str = "",
+        duration: str = "",
+        severity: str = "",
+        red_flag_symptoms: str = "",
+        known_conditions: str = "",
+    ) -> dict[str, object]:
+        """Assess symptom care urgency only when a caller asks how urgently to seek care.
+
+        Call for symptom descriptions asking whether care is emergency, urgent, routine,
+        or self-care, including possible emergency warning signs. Do not call for general
+        education, casual conversation, unrelated requests, or a definitive diagnosis.
+        Returns safe triage support, never a diagnosis; explain it naturally, not as JSON.
+        """
+        del ctx
+        try:
+            return assess_symptom_triage(
+                symptoms=symptoms,
+                age_band=age_band,
+                duration=duration,
+                severity=severity,
+                red_flag_symptoms=red_flag_symptoms,
+                known_conditions=known_conditions,
+            )
+        except (TypeError, ValueError):
+            logger.warning("Invalid symptom-triage input received")
+            return failure_result()
+        except Exception:
+            logger.exception("Local symptom-triage ruleset failed")
+            return failure_result()
 
 
 server = AgentServer()
