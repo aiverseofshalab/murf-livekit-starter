@@ -21,6 +21,8 @@ async def test_offers_assistance() -> None:
         result = await session.run(user_input="Hello")
 
         # Evaluate the agent's response for friendliness
+        result.expect.next_event().is_function_call(name="lookup_caller")
+        result.expect.next_event().is_function_call_output(is_error=False)
         await (
             result.expect.next_event()
             .is_message(role="assistant")
@@ -53,6 +55,8 @@ async def test_grounding() -> None:
         result = await session.run(user_input="What city was I born in?")
 
         # Evaluate the agent's response for a refusal
+        result.expect.next_event().is_function_call(name="lookup_caller")
+        result.expect.next_event().is_function_call_output(is_error=False)
         await (
             result.expect.next_event()
             .is_message(role="assistant")
