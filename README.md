@@ -260,6 +260,107 @@ For deeper documentation on each part, see:
 
 ---
 
+## Day 6 – Outbound Calling (Linphone SIP)
+
+MediSathi can place a server-triggered, post-triage follow-up call. The outbound
+integration uses **LiveKit Cloud SIP** with a **Linphone** free SIP account — no
+Twilio or PSTN dependency required. Browser voice calling remains unchanged.
+
+### How it works
+
+```
+make_call.py ──► LiveKit Cloud ──► Outbound SIP Trunk ──► sip.linphone.org ──► Linphone App
+                     │
+                     └── Agent dispatched to room (Murf Falcon TTS, Deepgram STT, Gemini LLM)
+```
+
+1. `make_call.py` creates a LiveKit room and dispatches the MediSathi agent.
+2. A SIP participant is created using the stored outbound trunk (`LIVEKIT_SIP_OUTBOUND_TRUNK_ID`).
+3. LiveKit dials `sip:<username>@sip.linphone.org` through the trunk.
+4. When the call is answered, MediSathi joins and speaks using Murf Falcon.
+5. The agent identifies itself, explains why it's calling, and offers to end the call.
+6. The user can converse naturally or say "stop" / "call band kijiye" to end.
+
+### Setup
+
+1. **Create a free Linphone account** at [linphone.org](https://www.linphone.org/).
+2. **Install Linphone** on your phone or desktop.
+3. **Note your SIP username** (the part before `@sip.linphone.org`).
+4. **Disable "Media encryption mandatory"** in Linphone settings if calls fail to connect (Settings → Network → Media encryption → None/Optional).
+5. **Create an outbound SIP trunk** in [LiveKit Cloud](https://cloud.livekit.io/) → SIP → Outbound Trunks:
+   - Name: `linphone-trunk`
+   - Address: `sip.linphone.org`
+   - Transport: TLS
+   - Numbers: `sip:<YOUR_USERNAME>`
+6. **Copy the trunk ID** (starts with `ST_`) to your `backend/.env.local`:
+
+   ```
+   LIVEKIT_SIP_OUTBOUND_TRUNK_ID=ST_your_trunk_id_here
+   ```
+
+### Environment variables
+
+| Variable | Purpose | Required |
+| --- | --- | --- |
+| `LIVEKIT_URL` | LiveKit project URL | Yes |
+| `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | Server-side LiveKit API access | Yes |
+| `LIVEKIT_SIP_OUTBOUND_TRUNK_ID` | Existing LiveKit outbound SIP trunk ID | Yes |
+| `MEDISATHI_OUTBOUND_ANSWER_TIMEOUT` | Optional 5–120 second answer timeout (default `35`) | No |
+| `SIP_DEFAULT_DOMAIN` | SIP domain for bare usernames (default `sip.linphone.org`) | No |
+| `LINPHONE_USERNAME` | Your Linphone username for quick reference | No |
+
+### Making a test call
+
+**Terminal 1** — start the agent:
+```bash
+cd backend
+uv run python src/agent.py dev
+```
+
+**Terminal 2** — place the call:
+```bash
+cd backend
+uv run python src/make_call.py --to <YOUR_LINPHONE_USERNAME>
+```
+
+The `--to` argument accepts:
+- A bare Linphone username: `myuser` → dials `sip:myuser@sip.linphone.org`
+- A full SIP URI: `sip:myuser@sip.linphone.org`
+- An E.164 phone number: `+919876543210` (if trunk supports PSTN)
+
+Additional options:
+```bash
+uv run python src/make_call.py --to myuser --name "Ramesh" --user-id demo-user --reason "Follow-up after triage"
+```
+
+### Call outcomes
+
+The CLI reports: `answered`, `no_answer`, `busy`, `declined`, `voicemail` (if
+reported by the provider), or `provider_failure`.
+
+### Data sources
+
+- **Telephony:** LiveKit Cloud SIP + Linphone (free SIP). No Twilio/PSTN dependency.
+- **TTS:** Murf Falcon (same voice pipeline as browser calls).
+- **STT:** Deepgram Nova-3. **LLM:** Google Gemini.
+
+### Limitations
+
+- **Voicemail detection:** The LiveKit Agents SDK does not expose an answering-machine
+  detector. Voicemail is reported only if the SIP provider signals it. With Linphone,
+  voicemail detection is not reliable.
+- **SIP availability:** Linphone's free SIP service may have intermittent availability.
+  If calls fail, verify Linphone is registered (green indicator in the app).
+- **No automatic retry:** Failed calls are not retried automatically in this demo.
+
+### Healthcare and privacy boundaries
+
+Outbound metadata is deliberately limited to a destination, optional consented user
+ID, non-sensitive reason, and call type. No medical notes or records are included.
+MediSathi remains an AI assistant, not a doctor. If a recipient describes emergency
+symptoms, it directs them to emergency medical care. Requests to stop or end the call
+are acknowledged and the outbound room is terminated.
+
 ## Links
 
 - [Murf API Docs](https://murf.ai/api/docs)

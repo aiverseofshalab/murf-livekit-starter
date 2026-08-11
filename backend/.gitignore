@@ -11,6 +11,8 @@ KMS
 .pytest_cache
 .ruff_cache
 data/*.db
+*.sqlite
+*.sqlite3
 
 # Claude Code
 .claude/settings.local.json

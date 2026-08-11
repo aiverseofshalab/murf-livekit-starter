@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from dotenv import load_dotenv
@@ -18,6 +19,7 @@ from livekit.plugins import deepgram, google, murf, noise_cancellation, silero
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from memory import MEMORY_FIELDS, CallerMemoryStore
+from outbound import parse_call_metadata
 from triage import assess_symptom_triage, failure_result
 
 logger = logging.getLogger("agent")
@@ -307,6 +309,24 @@ Reply:
 
 ----------------------------------------------------
 
+OUTBOUND FOLLOW-UP CALLS
+
+When this is an outbound phone follow-up, the opening words must identify MediSathi
+as an AI healthcare assistant, say this is a follow-up after a health conversation,
+and clearly say the recipient can end the call at any time. Never claim to be a
+doctor. Do not reveal any health context, name, saved memory, or reason until the
+person confirms they are the intended recipient.
+
+If another person answers, say only: "Hello, this is MediSathi, an AI healthcare
+assistant. May I speak with the person this call is intended for?" Do not disclose
+why you are calling.
+
+If the recipient says stop, don't call me, not interested, remove me, don't call
+again, bye, or otherwise asks to end the call, acknowledge without pressure, say a
+brief goodbye, then call end_outbound_follow_up. Do not continue the conversation.
+
+----------------------------------------------------
+
 PRIVACY
 
 Respect user privacy.
@@ -334,14 +354,32 @@ Always prioritize user safety over completing the conversation.
 
 
 class Assistant(Agent):
-    def __init__(self, user_id: str = "console-user") -> None:
+    def __init__(
+        self,
+        user_id: str = "console-user",
+        *,
+        outbound_call: bool = False,
+        follow_up_reason: str = "",
+    ) -> None:
         self.user_id = user_id
+        self.outbound_call = outbound_call
+        self.follow_up_reason = follow_up_reason
+        self._end_call_task: asyncio.Task[None] | None = None
         self.memory = CallerMemoryStore()
         super().__init__(instructions=SYSTEM_PROMPT)
 
     async def on_enter(self) -> None:
         """Look up the caller through the same tool exposed to the LLM before greeting."""
         memory = await self.lookup_caller()
+        if self.outbound_call:
+            del memory
+            self.session.say(
+                "Namaste, this is MediSathi, an AI healthcare assistant. I'm calling "
+                "to follow up after a recent health conversation. You can end this call "
+                "at any time if you do not want to continue. Am I speaking with the "
+                "person this call is intended for?"
+            )
+            return
         if memory.get("found") and memory.get("name"):
             greeting = (
                 f"Namaste {memory['name']}, welcome back. It's nice to speak with you again. "
@@ -435,6 +473,29 @@ class Assistant(Agent):
             logger.exception("Local symptom-triage ruleset failed")
             return failure_result()
 
+    @function_tool
+    async def end_outbound_follow_up(self, ctx: RunContext) -> dict[str, object]:
+        """End an outbound follow-up after the caller explicitly asks to stop or leave."""
+        if not self.outbound_call:
+            return {"success": False, "message": "This is not an outbound phone call."}
+
+        async def close_call() -> None:
+            await asyncio.sleep(2)
+            try:
+                from livekit.agents.job import get_job_context
+
+                await get_job_context().delete_room()
+            except Exception:
+                logger.exception("Unable to terminate outbound follow-up room")
+            finally:
+                ctx.session.shutdown()
+
+        self._end_call_task = asyncio.create_task(close_call())
+        return {
+            "success": True,
+            "message": "The follow-up is ending. Say a brief goodbye now and do not continue.",
+        }
+
 
 server = AgentServer()
 
@@ -449,6 +510,7 @@ server.setup_fnc = prewarm
 @server.rtc_session(agent_name="my-agent")
 async def my_agent(ctx: JobContext):
     await ctx.connect()
+    dial_info = parse_call_metadata(getattr(ctx.job, "metadata", ""))
     participant = await ctx.wait_for_participant()
     ctx.log_context_fields = {
         "room": ctx.room.name,
@@ -472,7 +534,13 @@ async def my_agent(ctx: JobContext):
     )
 
     await session.start(
-        agent=Assistant(user_id=participant.identity),
+        agent=Assistant(
+            user_id=dial_info.get("user_id", participant.identity),
+            outbound_call=bool(
+                dial_info.get("destination") or dial_info.get("phone_number")
+            ),
+            follow_up_reason=dial_info.get("reason", ""),
+        ),
         room=ctx.room,
         room_options=room_io.RoomOptions(
             audio_input=room_io.AudioInputOptions(
