@@ -361,6 +361,67 @@ MediSathi remains an AI assistant, not a doctor. If a recipient describes emerge
 symptoms, it directs them to emergency medical care. Requests to stop or end the call
 are acknowledged and the outbound room is terminated.
 
+---
+
+## Day 7 – Human Escalation
+
+MediSathi includes intelligent human escalation to route complex or high-risk
+healthcare scenarios to human review while maintaining user safety and explicit consent.
+
+### Escalation Conditions
+
+MediSathi initiates escalation ONLY under two conditions:
+
+1. **Red-Flag / Urgent Symptoms:** When a caller describes severe or urgent symptoms
+   (e.g., severe chest pressure, severe difficulty breathing, high fever with stiff neck,
+   or when symptom triage returns `EMERGENCY` or `URGENT`).
+2. **Diagnosis / Medical Decision Requests:** When a caller explicitly requests a
+   diagnosis, lab report interpretation, prescription, or professional medical decision.
+
+Normal informational questions (e.g., lifestyle, preventive care, mild symptoms) continue
+normally without triggering escalation.
+
+### Hard Consent Requirement
+
+MediSathi **NEVER** creates an escalation request without explicit caller permission.
+
+- **Pre-creation prompt:** MediSathi explains what details will be sent (caller name,
+  summary of what happened, what was checked, and urgency level) and asks: *"Would you
+  like me to send that?"*
+- **If consent is granted:** MediSathi calls `create_escalation` with
+  `consent_confirmed=True`, saves the request to SQLite, and returns a human-readable
+  reference ID (e.g., `MED-7A42F1`).
+- **If consent is refused:** MediSathi respects the decision, creates no request, and
+  provides safe guidance to seek direct professional care.
+
+### Request Storage & Reference ID
+
+Escalation requests are persisted in the local SQLite database (`medisathi_memory.db`)
+in an `escalation_requests` table with fields:
+- `reference_id` (e.g., `MED-7A42F1`)
+- `user_id`, `name`, `reason`, `summary`, `what_was_checked`
+- `urgency` (`low` | `medium` | `high` | `emergency`)
+- `language`, `preferred_follow_up`
+- `status` (`open`)
+- `created_at` / `updated_at`
+
+### Emergency Safety
+
+Human escalation requests **do not replace emergency medical services**. For
+potentially life-threatening situations, MediSathi directs callers to contact local
+emergency medical services immediately.
+
+### Testing
+
+Run automated escalation tests:
+
+```bash
+cd backend
+uv run pytest tests/test_escalation.py
+```
+
+---
+
 ## Links
 
 - [Murf API Docs](https://murf.ai/api/docs)

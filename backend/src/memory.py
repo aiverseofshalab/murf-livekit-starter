@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
+import re
+import secrets
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,6 +20,27 @@ MEMORY_FIELDS = (
     "age_band",
     "ongoing_conditions",
     "last_triage_outcome",
+)
+ESCALATION_TEXT_LIMITS = {
+    "user_id": 240,
+    "name": 120,
+    "reason": 500,
+    "summary": 2_000,
+    "what_was_checked": 1_000,
+    "language": 80,
+    "preferred_follow_up": 240,
+}
+SENSITIVE_ESCALATION_MARKERS = (
+    "password",
+    "passcode",
+    "otp",
+    "one-time password",
+    "pin",
+    "credit card",
+    "debit card",
+    "card number",
+    "bank account",
+    "authentication credential",
 )
 
 
@@ -50,6 +73,25 @@ class CallerMemoryStore:
                     last_triage_outcome TEXT,
                     consent_given INTEGER NOT NULL DEFAULT 0,
                     last_interaction TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS escalation_requests (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    reference_id TEXT UNIQUE NOT NULL,
+                    user_id TEXT NOT NULL,
+                    name TEXT,
+                    reason TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    what_was_checked TEXT,
+                    urgency TEXT NOT NULL DEFAULT 'medium',
+                    language TEXT,
+                    preferred_follow_up TEXT,
+                    status TEXT NOT NULL DEFAULT 'open',
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
                 )
@@ -134,6 +176,165 @@ class CallerMemoryStore:
         except sqlite3.Error:
             logger.exception("Unable to update caller interaction time")
 
+    def save_escalation_request(
+        self,
+        user_id: str,
+        reason: str,
+        summary: str,
+        what_was_checked: str = "",
+        urgency: str = "medium",
+        language: str = "English",
+        preferred_follow_up: str = "",
+        name: str = "",
+    ) -> dict[str, Any]:
+        """Save a human-escalation request with a unique reference ID (e.g. MED-7A42F1)."""
+        values = {
+            "user_id": user_id,
+            "name": name,
+            "reason": reason,
+            "summary": summary,
+            "what_was_checked": what_was_checked,
+            "language": language,
+            "preferred_follow_up": preferred_follow_up,
+        }
+        invalid_field = _invalid_escalation_field(values)
+        if invalid_field:
+            return {
+                "success": False,
+                "message": f"Invalid or unsafe escalation {invalid_field}.",
+            }
+
+        cleaned = {key: value.strip() for key, value in values.items()}
+        now = _timestamp()
+        urgency_clean = urgency.lower().strip() if urgency else "medium"
+        if urgency_clean not in {"low", "medium", "high", "emergency"}:
+            urgency_clean = "medium"
+
+        try:
+            with self._connect() as connection:
+                for _ in range(5):
+                    ref_id = f"MED-{secrets.token_hex(3).upper()}"
+                    try:
+                        connection.execute(
+                            """
+                            INSERT INTO escalation_requests (
+                                reference_id, user_id, name, reason, summary,
+                                what_was_checked, urgency, language, preferred_follow_up,
+                                status, created_at, updated_at
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)
+                            """,
+                            (
+                                ref_id,
+                                cleaned["user_id"],
+                                cleaned["name"],
+                                cleaned["reason"],
+                                cleaned["summary"],
+                                cleaned["what_was_checked"],
+                                urgency_clean,
+                                cleaned["language"] or "English",
+                                cleaned["preferred_follow_up"],
+                                now,
+                                now,
+                            ),
+                        )
+                        break
+                    except sqlite3.IntegrityError:
+                        continue
+                else:
+                    return {
+                        "success": False,
+                        "message": "Human escalation request could not be assigned a reference ID.",
+                    }
+        except sqlite3.Error:
+            logger.exception("Unable to save escalation request")
+            return {
+                "success": False,
+                "message": "Human escalation request could not be saved due to a system error.",
+            }
+
+        return {
+            "success": True,
+            "reference_id": ref_id,
+            "status": "open",
+            "message": "Human escalation request created successfully.",
+            "details": {
+                "reference_id": ref_id,
+                "user_id": cleaned["user_id"],
+                "name": cleaned["name"],
+                "reason": cleaned["reason"],
+                "summary": cleaned["summary"],
+                "what_was_checked": cleaned["what_was_checked"],
+                "urgency": urgency_clean,
+                "language": cleaned["language"] or "English",
+                "preferred_follow_up": cleaned["preferred_follow_up"],
+                "status": "open",
+                "created_at": now,
+            },
+        }
+
+    def lookup_escalation_request(self, reference_id: str) -> dict[str, Any]:
+        try:
+            with self._connect() as connection:
+                row = connection.execute(
+                    """
+                    SELECT reference_id, user_id, name, reason, summary,
+                           what_was_checked, urgency, language, preferred_follow_up,
+                           status, created_at, updated_at
+                    FROM escalation_requests
+                    WHERE reference_id = ?
+                    """,
+                    (reference_id.strip().upper(),),
+                ).fetchone()
+        except sqlite3.Error:
+            logger.exception("Unable to lookup escalation request")
+            return {
+                "found": False,
+                "error": "Escalation store is temporarily unavailable.",
+            }
+
+        return {"found": False} if row is None else {"found": True, **dict(row)}
+
+    def list_escalation_requests(
+        self, user_id: str | None = None, status: str | None = None
+    ) -> list[dict[str, Any]]:
+        try:
+            with self._connect() as connection:
+                query = "SELECT * FROM escalation_requests"
+                params: list[Any] = []
+                conditions: list[str] = []
+                if user_id:
+                    conditions.append("user_id = ?")
+                    params.append(user_id)
+                if status:
+                    conditions.append("status = ?")
+                    params.append(status)
+                if conditions:
+                    query += " WHERE " + " AND ".join(conditions)
+                query += " ORDER BY id DESC"
+                rows = connection.execute(query, params).fetchall()
+                return [dict(r) for r in rows]
+        except sqlite3.Error:
+            logger.exception("Unable to list escalation requests")
+            return []
+
 
 def _timestamp() -> str:
     return datetime.now(UTC).isoformat()
+
+
+def _invalid_escalation_field(values: dict[str, str]) -> str | None:
+    """Reject malformed or secret-bearing text before it reaches SQLite."""
+    for field, value in values.items():
+        if (
+            not isinstance(value, str)
+            or len(value.strip()) > ESCALATION_TEXT_LIMITS[field]
+        ):
+            return field
+
+    combined = " ".join(values.values()).lower()
+    if any(
+        re.search(rf"\b{re.escape(marker)}\b", combined)
+        for marker in SENSITIVE_ESCALATION_MARKERS
+    ):
+        return "content"
+    return None

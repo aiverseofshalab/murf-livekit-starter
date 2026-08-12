@@ -327,6 +327,50 @@ brief goodbye, then call end_outbound_follow_up. Do not continue the conversatio
 
 ----------------------------------------------------
 
+----------------------------------------------------
+
+HUMAN ESCALATION WORKFLOW (DAY 7)
+
+You are an AI assistant and NOT a licensed medical professional. You must know your limitations and escalate to human healthcare support when appropriate.
+
+WHEN TO ESCALATE:
+Initiate the human escalation workflow ONLY in two situations:
+
+1. RED-FLAG / URGENT SYMPTOMS:
+   The caller describes severe or potentially urgent symptoms (e.g. severe chest pain, shortness of breath, high fever with stiff neck, persistent vomiting, severe pain, or when assess_symptom_triage returns EMERGENCY or URGENT care level).
+
+2. DIAGNOSIS / MEDICAL DECISION REQUEST:
+   The caller explicitly asks you to diagnose a condition, interpret a lab report/scan definitively, prescribe medicine, or make a professional medical decision that only a doctor can make.
+
+Do NOT escalate for normal health education, low-risk symptoms, lifestyle tips, or general informational questions.
+
+HARD CONSENT REQUIREMENT:
+You must NEVER call create_escalation without first asking explicit permission from the caller.
+
+BEFORE calling create_escalation, say naturally:
+"I think this would be better reviewed by a healthcare professional. I can send a short summary of what you've told me to a human support team. It would include your name, what happened, what I checked, and how urgent it seems. Would you like me to send that?"
+
+In Hindi (Devanagari):
+"मुझे लगता है कि किसी स्वास्थ्य विशेषज्ञ से सलाह लेना बेहतर होगा। मैं हमारी बातचीत का एक संक्षिप्त सारांश अपनी सपोर्ट टीम को भेज सकता हूँ। इसमें आपका नाम, लक्षण और स्थिति की गंभीरता शामिल होगी। क्या आप चाहते हैं कि मैं यह अनुरोध भेजूँ?"
+
+RESPONSE IF CONSENT IS GIVEN (e.g., "yes", "sure", "please do", "go ahead", "हाँ", "भेज दीजिए"):
+1. Call create_escalation with consent_confirmed=True.
+2. After the tool returns success, inform the caller:
+   - The request has been created.
+   - Read out their reference ID clearly (e.g., "Your reference ID is MED-7A42F1").
+   - Explain what happens next and set an honest expectation (e.g., "A support team member can review your request using this reference ID.").
+   - Remind them that if symptoms become severe or life-threatening, seek immediate emergency medical care.
+
+RESPONSE IF CONSENT IS REFUSED (e.g., "no", "don't send", "नहीं"):
+1. Do NOT call create_escalation.
+2. Respect their decision politely: "Understood, I won't send a request."
+3. Advise them safely: "If your symptoms persist, worsen, or concern you, please consult a healthcare professional directly."
+
+EMERGENCY DISCLAIMER:
+Creating a human escalation request does NOT replace emergency services. In case of an emergency, remind the user to contact local emergency medical services immediately.
+
+----------------------------------------------------
+
 PRIVACY
 
 Respect user privacy.
@@ -495,6 +539,74 @@ class Assistant(Agent):
             "success": True,
             "message": "The follow-up is ending. Say a brief goodbye now and do not continue.",
         }
+
+    @function_tool
+    async def create_escalation(
+        self,
+        ctx: RunContext,
+        reason: str,
+        summary: str,
+        what_was_checked: str = "",
+        urgency: str = "medium",
+        language: str = "English",
+        preferred_follow_up: str = "",
+        consent_confirmed: bool = False,
+        name: str = "",
+    ) -> dict[str, object]:
+        """Create a structured human healthcare escalation request ONLY after explicit caller consent.
+
+        Call this tool ONLY when:
+        1. The caller reports red-flag or potentially urgent symptoms (or triage indicates EMERGENCY/URGENT).
+        2. The caller explicitly asks for a diagnosis, prescription, lab interpretation, or professional medical decision.
+        AND
+        3. The caller HAS EXPLICITLY CONFIRMED CONSENT (consent_confirmed=True) after you asked permission.
+
+        Do NOT call this tool for normal informational questions, casual conversation, or without caller consent.
+        Do NOT include passwords, OTPs, PINs, banking info, full transcripts, or unnecessary private data.
+        """
+        del ctx
+        if not consent_confirmed:
+            return {
+                "success": False,
+                "message": (
+                    "Do NOT call create_escalation until the caller explicitly agrees to send a human help request. "
+                    "Ask for explicit consent first. If the caller declines, do not call this tool."
+                ),
+            }
+
+        if not reason or not reason.strip():
+            return {
+                "success": False,
+                "message": "A non-empty reason is required for escalation.",
+            }
+        if not summary or not summary.strip():
+            return {
+                "success": False,
+                "message": "A non-empty summary is required for escalation.",
+            }
+
+        if len(reason.strip()) > 500 or len(summary.strip()) > 2_000:
+            return {
+                "success": False,
+                "message": "The escalation summary is too long. Send only the minimum useful details.",
+            }
+
+        # Use saved name from memory if not provided
+        if not name:
+            memory = self.memory.lookup(self.user_id)
+            if memory.get("found") and memory.get("name"):
+                name = str(memory["name"])
+
+        return self.memory.save_escalation_request(
+            user_id=self.user_id,
+            reason=reason,
+            summary=summary,
+            what_was_checked=what_was_checked,
+            urgency=urgency,
+            language=language,
+            preferred_follow_up=preferred_follow_up,
+            name=name,
+        )
 
 
 server = AgentServer()
