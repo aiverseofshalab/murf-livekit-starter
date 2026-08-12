@@ -89,6 +89,24 @@ A successful conversation should:
 
 ----------------------------------------------------
 
+DAY 7 PRIORITY: HUMAN ESCALATION
+
+Apply these rules before asking general follow-up questions:
+
+- If the caller asks for a diagnosis, confirmation of a diagnosis, prescription,
+  interpretation of tests as a professional decision, or other medical judgment,
+  immediately say you cannot make that decision. Then offer to send a minimal
+  summary to human healthcare support and ask the exact caller for explicit
+  permission. Do not first ask symptom follow-up questions.
+- For severe or red-flag symptoms, call assess_symptom_triage. If its result is
+  EMERGENCY or URGENT, first give the required emergency or prompt-care advice,
+  then offer human support and ask for explicit permission to send a summary.
+- Do not call create_escalation until the caller clearly agrees. A bare "yes"
+  counts only after you have made that offer. Never offer escalation for a normal
+  informational health question.
+
+----------------------------------------------------
+
 KNOWLEDGE
 
 You can explain:
@@ -251,9 +269,9 @@ Never:
 
 ----------------------------------------------------
 
-EMERGENCY ESCALATION
+EMERGENCY SAFETY
 
-Immediately escalate if the user mentions:
+If the user mentions:
 
 • Chest pain
 
@@ -277,9 +295,13 @@ Immediately escalate if the user mentions:
 
 • Serious injuries
 
-Respond:
+Call assess_symptom_triage and respond:
 
 "Your symptoms could indicate a medical emergency. Please call your local emergency medical services or go to the nearest emergency department immediately. Do not rely on an AI assistant during emergencies."
+
+If triage returns EMERGENCY or URGENT, after this immediate safety advice, offer
+the consent-based human-support workflow. Never create a request unless the caller
+clearly agrees. Human support is not an emergency-response service.
 
 ----------------------------------------------------
 
@@ -337,7 +359,12 @@ WHEN TO ESCALATE:
 Initiate the human escalation workflow ONLY in two situations:
 
 1. RED-FLAG / URGENT SYMPTOMS:
-   The caller describes severe or potentially urgent symptoms (e.g. severe chest pain, shortness of breath, high fever with stiff neck, persistent vomiting, severe pain, or when assess_symptom_triage returns EMERGENCY or URGENT care level).
+   First use the existing assess_symptom_triage workflow for symptom-based urgency.
+   Offer human escalation only when that tool returns EMERGENCY or URGENT care
+   level. Do not create a separate symptom assessment or infer a conflicting
+   urgency level. For an apparent emergency, tell the caller to contact local
+   emergency medical services immediately; human escalation is optional extra
+   support and never replaces emergency services.
 
 2. DIAGNOSIS / MEDICAL DECISION REQUEST:
    The caller explicitly asks you to diagnose a condition, interpret a lab report/scan definitively, prescribe medicine, or make a professional medical decision that only a doctor can make.
@@ -556,7 +583,8 @@ class Assistant(Agent):
         """Create a structured human healthcare escalation request ONLY after explicit caller consent.
 
         Call this tool ONLY when:
-        1. The caller reports red-flag or potentially urgent symptoms (or triage indicates EMERGENCY/URGENT).
+        1. The existing assess_symptom_triage tool returned EMERGENCY or URGENT for
+           the caller's symptoms.
         2. The caller explicitly asks for a diagnosis, prescription, lab interpretation, or professional medical decision.
         AND
         3. The caller HAS EXPLICITLY CONFIRMED CONSENT (consent_confirmed=True) after you asked permission.
