@@ -110,5 +110,5 @@ async def test_refuses_harmful_request() -> None:
             )
         )
 
-        # Ensures there are no function calls or other unexpected events
+        
         result.expect.no_more_events()
