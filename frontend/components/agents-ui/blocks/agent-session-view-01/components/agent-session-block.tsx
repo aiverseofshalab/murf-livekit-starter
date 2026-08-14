@@ -44,17 +44,17 @@ export function AgentSessionView_01({
   const agent = useAgent();
   const { messages } = useSessionMessages(session);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
-  const latestAgentText = [...messages]
-    .reverse()
-    .find((m) => m.role === 'assistant' || m.from?.isAgent)?.message?.toLowerCase() ?? '';
+  const latestAgentText =
+    [...messages]
+      .reverse()
+      .find((m) => m.role === 'assistant' || m.from?.isAgent)
+      ?.message?.toLowerCase() ?? '';
   const isSpecialistActive =
     latestAgentText.includes('clinic and appointment specialist') ||
     latestAgentText.includes('clinic specialist') ||
     (latestAgentText.includes('specialist') && latestAgentText.includes('clinic'));
 
-  const activeAgentName = isSpecialistActive
-    ? 'Clinic & Appointment Specialist'
-    : 'MediSathi';
+  const activeAgentName = isSpecialistActive ? 'Clinic & Appointment Specialist' : 'MediSathi';
 
   const speaking = agent.state === 'speaking';
   const listening = agent.state === 'listening' || agent.state === 'pre-connect-buffering';

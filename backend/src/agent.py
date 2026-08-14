@@ -517,7 +517,6 @@ class Assistant(Agent):
         )
         super().__init__(instructions=SYSTEM_PROMPT, tts=main_tts)
 
-
     async def on_enter(self) -> None:
         """Look up the caller through the same tool exposed to the LLM before greeting."""
         memory = await self.lookup_caller()

@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Activity, HeartPulse, Mic, RefreshCw, ShieldCheck, Stethoscope } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -26,10 +27,19 @@ export const WelcomeView = ({
           <span className="text-muted-foreground text-xs">Your Friendly AI Health Companion</span>
         </span>
       </div>
-      <span className="medisathi-pill hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-cyan-100 sm:flex">
-        <ShieldCheck className="size-4" /> Private &amp; supportive
-      </span>
+      <div className="flex items-center gap-3">
+        <span className="medisathi-pill hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold text-cyan-100 sm:flex">
+          <ShieldCheck className="size-4" /> Private &amp; supportive
+        </span>
+        <Link
+          href="/dashboard"
+          className="medisathi-pill flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-white/10"
+        >
+          Operations Dashboard
+        </Link>
+      </div>
     </header>
+
     <main className="mx-auto flex w-full max-w-4xl flex-col items-center pt-10 pb-10 text-center sm:pt-16">
       <span className="medisathi-pill mb-5 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold tracking-wide text-cyan-100">
         <Activity className="size-3.5" /> AI VOICE HEALTHCARE ASSISTANT

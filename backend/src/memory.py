@@ -317,6 +317,73 @@ class CallerMemoryStore:
             logger.exception("Unable to list escalation requests")
             return []
 
+    def update_escalation_status(
+        self, reference_id: str, new_status: str
+    ) -> dict[str, Any]:
+        """Update status of an escalation request ('open', 'in_progress', 'resolved')."""
+        status_clean = new_status.lower().strip()
+        if status_clean not in {"open", "in_progress", "resolved"}:
+            return {
+                "success": False,
+                "message": "Invalid status. Must be 'open', 'in_progress', or 'resolved'.",
+            }
+        now = _timestamp()
+        try:
+            with self._connect() as connection:
+                cursor = connection.execute(
+                    """
+                    UPDATE escalation_requests
+                    SET status = ?, updated_at = ?
+                    WHERE reference_id = ?
+                    """,
+                    (status_clean, now, reference_id.strip().upper()),
+                )
+                if cursor.rowcount == 0:
+                    return {
+                        "success": False,
+                        "message": f"Escalation request {reference_id} not found.",
+                    }
+        except sqlite3.Error:
+            logger.exception("Unable to update escalation status")
+            return {
+                "success": False,
+                "message": "Failed to update status due to a database error.",
+            }
+
+        return {
+            "success": True,
+            "reference_id": reference_id.strip().upper(),
+            "status": status_clean,
+            "updated_at": now,
+            "message": f"Status updated to {status_clean}.",
+        }
+
+    def get_escalation_stats(self) -> dict[str, int]:
+        """Return dynamic stats: total, open, urgent (high or emergency), resolved."""
+        try:
+            with self._connect() as connection:
+                total = connection.execute(
+                    "SELECT COUNT(*) FROM escalation_requests"
+                ).fetchone()[0]
+                open_count = connection.execute(
+                    "SELECT COUNT(*) FROM escalation_requests WHERE status = 'open'"
+                ).fetchone()[0]
+                urgent_count = connection.execute(
+                    "SELECT COUNT(*) FROM escalation_requests WHERE urgency IN ('high', 'emergency')"
+                ).fetchone()[0]
+                resolved_count = connection.execute(
+                    "SELECT COUNT(*) FROM escalation_requests WHERE status = 'resolved'"
+                ).fetchone()[0]
+                return {
+                    "total": total,
+                    "open": open_count,
+                    "urgent": urgent_count,
+                    "resolved": resolved_count,
+                }
+        except sqlite3.Error:
+            logger.exception("Unable to calculate escalation stats")
+            return {"total": 0, "open": 0, "urgent": 0, "resolved": 0}
+
 
 def _timestamp() -> str:
     return datetime.now(UTC).isoformat()

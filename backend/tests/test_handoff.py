@@ -62,7 +62,9 @@ def test_main_agent_has_handoff_tool_with_clear_description() -> None:
 
     assert "transfer_to_clinic_specialist" in tool_names
 
-    handoff_tool = next(t for t in tools if t.info.name == "transfer_to_clinic_specialist")
+    handoff_tool = next(
+        t for t in tools if t.info.name == "transfer_to_clinic_specialist"
+    )
     description = handoff_tool.info.description.lower()
 
     assert "clinic" in description
@@ -117,7 +119,6 @@ def test_facility_lookup_failure_graceful_handling() -> None:
         assert result["success"] is False
         assert result["found"] is False
         assert "couldn't retrieve" in result["message"]
-
 
 
 # ---------------------------------------------------------------------------

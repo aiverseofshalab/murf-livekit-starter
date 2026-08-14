@@ -131,6 +131,52 @@ def test_escalation_database_failure_returns_structured_error(tmp_path) -> None:
     assert "reference_id" not in result
 
 
+def test_escalation_status_update_and_stats(tmp_path) -> None:
+    db_path = tmp_path / "medisathi_test.db"
+    store = CallerMemoryStore(db_path)
+
+    stats_empty = store.get_escalation_stats()
+    assert stats_empty == {"total": 0, "open": 0, "urgent": 0, "resolved": 0}
+
+    res1 = store.save_escalation_request(
+        user_id="user-1",
+        reason="Diagnosis request",
+        summary="User requested skin rash diagnosis.",
+        urgency="medium",
+    )
+    res2 = store.save_escalation_request(
+        user_id="user-2",
+        reason="Emergency symptoms",
+        summary="User reported chest pain.",
+        urgency="emergency",
+    )
+
+    stats_after_add = store.get_escalation_stats()
+    assert stats_after_add["total"] == 2
+    assert stats_after_add["open"] == 2
+    assert stats_after_add["urgent"] == 1
+    assert stats_after_add["resolved"] == 0
+
+    up1 = store.update_escalation_status(res1["reference_id"], "in_progress")
+    assert up1["success"] is True
+    assert up1["status"] == "in_progress"
+
+    up2 = store.update_escalation_status(res2["reference_id"], "resolved")
+    assert up2["success"] is True
+    assert up2["status"] == "resolved"
+
+    stats_after_update = store.get_escalation_stats()
+    assert stats_after_update["total"] == 2
+    assert stats_after_update["open"] == 0
+    assert stats_after_update["resolved"] == 1
+
+    restarted_store = CallerMemoryStore(db_path)
+    lookup1 = restarted_store.lookup_escalation_request(res1["reference_id"])
+    lookup2 = restarted_store.lookup_escalation_request(res2["reference_id"])
+    assert lookup1["status"] == "in_progress"
+    assert lookup2["status"] == "resolved"
+
+
 # ---------------------------------------------------------------------------
 # Assistant create_escalation Tool Unit Tests
 # ---------------------------------------------------------------------------
