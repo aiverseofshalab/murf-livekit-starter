@@ -97,6 +97,22 @@ class CallerMemoryStore:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS call_records (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    call_id TEXT UNIQUE NOT NULL,
+                    user_id TEXT NOT NULL,
+                    channel TEXT NOT NULL DEFAULT 'browser',
+                    started_at TEXT NOT NULL,
+                    ended_at TEXT,
+                    duration_seconds INTEGER DEFAULT 0,
+                    outcome TEXT DEFAULT 'ongoing',
+                    success_reason TEXT DEFAULT '',
+                    failure_reason TEXT DEFAULT ''
+                )
+                """
+            )
 
     def lookup(self, user_id: str) -> dict[str, Any]:
         try:
@@ -383,6 +399,136 @@ class CallerMemoryStore:
         except sqlite3.Error:
             logger.exception("Unable to calculate escalation stats")
             return {"total": 0, "open": 0, "urgent": 0, "resolved": 0}
+
+    def create_call_record(
+        self, call_id: str, user_id: str, channel: str = "browser"
+    ) -> dict[str, Any]:
+        """Create a new call record in SQLite with status 'ongoing'."""
+        now = _timestamp()
+        ch_clean = "sip" if "sip" in channel.lower() else "browser"
+        try:
+            with self._connect() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO call_records (
+                        call_id, user_id, channel, started_at, outcome
+                    ) VALUES (?, ?, ?, ?, 'ongoing')
+                    """,
+                    (call_id, user_id, ch_clean, now),
+                )
+        except sqlite3.IntegrityError:
+            return {"success": True, "call_id": call_id, "already_existed": True}
+        except sqlite3.Error:
+            logger.exception("Unable to create call record")
+            return {"success": False, "message": "Database error creating call record."}
+
+        return {"success": True, "call_id": call_id, "started_at": now}
+
+    def finish_call_record(
+        self,
+        call_id: str,
+        outcome: str = "successful",
+        duration_seconds: int = 0,
+        success_reason: str = "",
+        failure_reason: str = "",
+    ) -> dict[str, Any]:
+        """Complete an existing call record with outcome, duration, and reasons."""
+        now = _timestamp()
+        outcome_clean = (
+            "successful" if outcome.lower().strip() == "successful" else "failed"
+        )
+        try:
+            with self._connect() as connection:
+                cursor = connection.execute(
+                    """
+                    UPDATE call_records
+                    SET ended_at = ?, duration_seconds = ?, outcome = ?,
+                        success_reason = ?, failure_reason = ?
+                    WHERE call_id = ?
+                    """,
+                    (
+                        now,
+                        max(0, duration_seconds),
+                        outcome_clean,
+                        success_reason[:500],
+                        failure_reason[:500],
+                        call_id,
+                    ),
+                )
+                if cursor.rowcount == 0:
+                    connection.execute(
+                        """
+                        INSERT INTO call_records (
+                            call_id, user_id, channel, started_at, ended_at,
+                            duration_seconds, outcome, success_reason, failure_reason
+                        ) VALUES (?, 'unknown', 'browser', ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            call_id,
+                            now,
+                            now,
+                            max(0, duration_seconds),
+                            outcome_clean,
+                            success_reason[:500],
+                            failure_reason[:500],
+                        ),
+                    )
+        except sqlite3.Error:
+            logger.exception("Unable to finish call record")
+            return {
+                "success": False,
+                "message": "Database error completing call record.",
+            }
+
+        return {"success": True, "call_id": call_id, "outcome": outcome_clean}
+
+    def get_call_analytics(self) -> dict[str, Any]:
+        """Return dynamic call analytics calculated strictly from SQLite call_records."""
+        try:
+            with self._connect() as connection:
+                total = connection.execute(
+                    "SELECT COUNT(*) FROM call_records"
+                ).fetchone()[0]
+                successful = connection.execute(
+                    "SELECT COUNT(*) FROM call_records WHERE outcome = 'successful'"
+                ).fetchone()[0]
+                failed = connection.execute(
+                    "SELECT COUNT(*) FROM call_records WHERE outcome = 'failed'"
+                ).fetchone()[0]
+                rate = round((successful / total * 100), 1) if total > 0 else 0.0
+                return {
+                    "total_calls": total,
+                    "successful_calls": successful,
+                    "failed_calls": failed,
+                    "success_rate": rate,
+                }
+        except sqlite3.Error:
+            logger.exception("Unable to calculate call analytics")
+            return {
+                "total_calls": 0,
+                "successful_calls": 0,
+                "failed_calls": 0,
+                "success_rate": 0.0,
+            }
+
+    def get_recent_calls(self, limit: int = 10) -> list[dict[str, Any]]:
+        """Return safe recent call metadata (timestamp, channel, duration, outcome)."""
+        try:
+            with self._connect() as connection:
+                rows = connection.execute(
+                    """
+                    SELECT call_id, user_id, channel, started_at, ended_at,
+                           duration_seconds, outcome, success_reason, failure_reason
+                    FROM call_records
+                    ORDER BY id DESC
+                    LIMIT ?
+                    """,
+                    (max(1, min(limit, 50)),),
+                ).fetchall()
+                return [dict(r) for r in rows]
+        except sqlite3.Error:
+            logger.exception("Unable to fetch recent call records")
+            return []
 
 
 def _timestamp() -> str:

@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+import secrets
+import time
 from typing import Any
 
 from dotenv import load_dotenv
@@ -502,12 +504,19 @@ class Assistant(Agent):
         outbound_call: bool = False,
         follow_up_reason: str = "",
         tts_instance: murf.TTS | None = None,
+        call_id: str | None = None,
+        start_time: float | None = None,
     ) -> None:
         self.user_id = user_id
         self.outbound_call = outbound_call
         self.follow_up_reason = follow_up_reason
         self._end_call_task: asyncio.Task[None] | None = None
         self.memory = CallerMemoryStore()
+        self.call_id = call_id or f"call_{secrets.token_hex(4)}"
+        self.start_time = start_time or time.time()
+        self.has_successful_outcome = False
+        self.success_reason = ""
+        self.failure_reason = ""
         main_tts = tts_instance or murf.TTS(
             voice=MURF_MAIN_VOICE,
             locale="en-IN",
@@ -519,6 +528,10 @@ class Assistant(Agent):
 
     async def on_enter(self) -> None:
         """Look up the caller through the same tool exposed to the LLM before greeting."""
+        channel = "sip" if self.outbound_call else "browser"
+        self.memory.create_call_record(
+            call_id=self.call_id, user_id=self.user_id, channel=channel
+        )
         memory = await self.lookup_caller()
         if self.outbound_call:
             del memory
@@ -543,10 +556,33 @@ class Assistant(Agent):
 
     async def on_exit(self) -> None:
         self.memory.touch(self.user_id)
+        duration = max(1, int(time.time() - self.start_time))
+        if self.has_successful_outcome or duration >= 5:
+            outcome = "successful"
+            reason = self.success_reason or "Completed safe healthcare voice session"
+            self.memory.finish_call_record(
+                call_id=self.call_id,
+                outcome=outcome,
+                duration_seconds=duration,
+                success_reason=reason,
+            )
+        else:
+            outcome = "failed"
+            reason = (
+                self.failure_reason or "Call ended before healthcare task was completed"
+            )
+            self.memory.finish_call_record(
+                call_id=self.call_id,
+                outcome=outcome,
+                duration_seconds=duration,
+                failure_reason=reason,
+            )
 
     @function_tool
     async def lookup_caller(self) -> dict[str, object]:
         """Look up the current caller's consented, minimal healthcare memory."""
+        self.has_successful_outcome = True
+        self.success_reason = "Looked up caller memory"
         return self.memory.lookup(self.user_id)
 
     @function_tool
@@ -585,6 +621,8 @@ class Assistant(Agent):
                 "message": "No caller details were provided to save.",
             }
 
+        self.has_successful_outcome = True
+        self.success_reason = "Saved caller memory with consent"
         return self.memory.save(self.user_id, fields)
 
     @function_tool
@@ -598,14 +636,10 @@ class Assistant(Agent):
         red_flag_symptoms: str = "",
         known_conditions: str = "",
     ) -> dict[str, object]:
-        """Assess symptom care urgency only when a caller asks how urgently to seek care.
-
-        Call for symptom descriptions asking whether care is emergency, urgent, routine,
-        or self-care, including possible emergency warning signs. Do not call for general
-        education, casual conversation, unrelated requests, or a definitive diagnosis.
-        Returns safe triage support, never a diagnosis; explain it naturally, not as JSON.
-        """
+        """Assess symptom care urgency only when a caller asks how urgently to seek care."""
         del ctx
+        self.has_successful_outcome = True
+        self.success_reason = "Assessed symptom care triage"
         try:
             return assess_symptom_triage(
                 symptoms=symptoms,
@@ -627,6 +661,9 @@ class Assistant(Agent):
         """End an outbound follow-up after the caller explicitly asks to stop or leave."""
         if not self.outbound_call:
             return {"success": False, "message": "This is not an outbound phone call."}
+
+        self.has_successful_outcome = True
+        self.success_reason = "Completed outbound phone follow-up"
 
         async def close_call() -> None:
             await asyncio.sleep(2)
@@ -658,18 +695,7 @@ class Assistant(Agent):
         consent_confirmed: bool = False,
         name: str = "",
     ) -> dict[str, object]:
-        """Create a structured human healthcare escalation request ONLY after explicit caller consent.
-
-        Call this tool ONLY when:
-        1. The existing assess_symptom_triage tool returned EMERGENCY or URGENT for
-           the caller's symptoms.
-        2. The caller explicitly asks for a diagnosis, prescription, lab interpretation, or professional medical decision.
-        AND
-        3. The caller HAS EXPLICITLY CONFIRMED CONSENT (consent_confirmed=True) after you asked permission.
-
-        Do NOT call this tool for normal informational questions, casual conversation, or without caller consent.
-        Do NOT include passwords, OTPs, PINs, banking info, full transcripts, or unnecessary private data.
-        """
+        """Create a structured human healthcare escalation request ONLY after explicit caller consent."""
         del ctx
         if not consent_confirmed:
             return {
@@ -679,6 +705,9 @@ class Assistant(Agent):
                     "Ask for explicit consent first. If the caller declines, do not call this tool."
                 ),
             }
+
+        self.has_successful_outcome = True
+        self.success_reason = "Created human healthcare escalation with consent"
 
         if not reason or not reason.strip():
             return {
@@ -746,7 +775,14 @@ class Assistant(Agent):
                 "location": location,
                 "language": language,
             }
-            specialist = ClinicSpecialist(user_id=self.user_id, context=context)
+            self.has_successful_outcome = True
+            self.success_reason = "Specialist handoff executed"
+            specialist = ClinicSpecialist(
+                user_id=self.user_id,
+                context=context,
+                call_id=self.call_id,
+                start_time=self.start_time,
+            )
             self.session.say(
                 "I'll connect you with our clinic and appointment specialist. They can help you find the right healthcare facility."
             )
@@ -774,6 +810,8 @@ class Assistant(Agent):
     ) -> dict[str, Any]:
         """Look up verified healthcare facilities, primary health centers (PHCs), clinics, or hospitals."""
         del ctx
+        self.has_successful_outcome = True
+        self.success_reason = "Retrieved verified healthcare facility details"
         return lookup_healthcare_facility(
             facility_type=facility_type, location=location
         )
@@ -786,10 +824,17 @@ class ClinicSpecialist(Agent):
         *,
         context: dict[str, Any] | None = None,
         tts_instance: murf.TTS | None = None,
+        call_id: str | None = None,
+        start_time: float | None = None,
     ) -> None:
         self.user_id = user_id
         self.context = context or {}
         self.memory = CallerMemoryStore()
+        self.call_id = call_id or f"call_{secrets.token_hex(4)}"
+        self.start_time = start_time or time.time()
+        self.has_successful_outcome = True
+        self.success_reason = "Completed clinic specialist interaction"
+        self.failure_reason = ""
         specialist_tts = tts_instance or murf.TTS(
             voice=MURF_SPECIALIST_VOICE,
             locale="en-IN",
@@ -800,6 +845,16 @@ class ClinicSpecialist(Agent):
         super().__init__(
             instructions=CLINIC_SPECIALIST_SYSTEM_PROMPT,
             tts=specialist_tts,
+        )
+
+    async def on_exit(self) -> None:
+        self.memory.touch(self.user_id)
+        duration = max(1, int(time.time() - self.start_time))
+        self.memory.finish_call_record(
+            call_id=self.call_id,
+            outcome="successful",
+            duration_seconds=duration,
+            success_reason=self.success_reason,
         )
 
     async def on_enter(self) -> None:

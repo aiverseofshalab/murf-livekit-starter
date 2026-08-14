@@ -488,10 +488,91 @@ cd backend
 uv run pytest tests/test_handoff.py
 ```
 
+---
+
+## Day 8 – Real Call Analytics Dashboard
+
+MediSathi includes a real-time **Call Analytics Dashboard** powered by SQLite (`backend/data/medisathi_memory.db`). Every browser and outbound SIP call creates a real database record and dynamically updates operational metrics without hardcoded numbers.
+
+### System Architecture Flow
+
+```
+User Call (Browser / SIP)
+          │
+          ▼
+MediSathi Agent Connected
+          │
+          ▼
+Call Record Created (channel, start_time, 'ongoing')
+          │
+          ▼
+Conversation & Healthcare Tools Executed
+          │
+          ▼
+Call Ends ──► Outcome Determined ('successful' vs 'failed')
+          │
+          ▼
+SQLite `call_records` Table Updated
+          │
+          ▼
+Analytics API (`GET /api/analytics`, `GET /api/calls/recent`)
+          │
+          ▼
+Real-Time Call Analytics Dashboard (`/analytics`)
+```
+
+### Call Success & Failure Criteria
+
+- **Successful Call**: The caller received safe healthcare guidance, completed the requested task, received a verified tool result (symptom triage assessment, facility lookup, memory save), or an appropriate human escalation was successfully created with consent.
+- **Failed Call**: The conversation ended without reaching a useful healthcare outcome (e.g. user hangs up immediately / before task is completed, required action fails without fallback, call disconnects before interaction).
+
+### SQLite Database Schema (`call_records`)
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | `INTEGER PRIMARY KEY` | Auto-incrementing internal ID |
+| `call_id` | `TEXT UNIQUE` | Unique session identifier (e.g. `call_a1b2c3d4`) |
+| `user_id` | `TEXT` | Caller identifier (sanitized/anonymized) |
+| `channel` | `TEXT` | `browser` or `sip` |
+| `started_at` | `TEXT` | ISO 8601 start timestamp |
+| `ended_at` | `TEXT` | ISO 8601 end timestamp |
+| `duration_seconds` | `INTEGER` | Call duration in seconds |
+| `outcome` | `TEXT` | `successful` or `failed` |
+| `success_reason` | `TEXT` | Safe explanation of healthcare success |
+| `failure_reason` | `TEXT` | Safe reason for call failure |
+
+### REST API Endpoints
+
+- `GET /api/analytics`: Returns calculated analytics JSON from SQLite:
+  ```json
+  {
+    "total_calls": 5,
+    "successful_calls": 4,
+    "failed_calls": 1,
+    "success_rate": 80.0
+  }
+  ```
+- `GET /api/calls/recent`: Returns safe recent call metadata for history display.
+
+### Privacy & Security Safeguards
+
+The analytics dashboard and backend database APIs enforce strict healthcare privacy standards:
+- **NO sensitive medical records or transcripts** are stored in `call_records`.
+- **NO passwords, OTPs, PINs, or financial data** are logged.
+- All numbers on the dashboard are **100% dynamic values** queried directly from SQLite.
+
+### Running Analytics Tests
+
+```bash
+cd backend
+uv run pytest tests/test_analytics.py
+```
+
 
 ---
 
 ## Links
+
 
 - [Murf API Docs](https://murf.ai/api/docs)
 - [Murf Voice Library](https://murf.ai/api/docs/voices-styles/voice-library)

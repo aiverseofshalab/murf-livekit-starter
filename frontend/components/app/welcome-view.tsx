@@ -32,6 +32,12 @@ export const WelcomeView = ({
           <ShieldCheck className="size-4" /> Private &amp; supportive
         </span>
         <Link
+          href="/analytics"
+          className="medisathi-pill flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-teal-300 transition hover:bg-white/10"
+        >
+          Analytics
+        </Link>
+        <Link
           href="/dashboard"
           className="medisathi-pill flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-white/10"
         >

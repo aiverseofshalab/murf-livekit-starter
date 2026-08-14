@@ -39,6 +39,18 @@ export function getDb() {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS call_records (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      call_id TEXT UNIQUE NOT NULL,
+      user_id TEXT NOT NULL,
+      channel TEXT NOT NULL DEFAULT 'browser',
+      started_at TEXT NOT NULL,
+      ended_at TEXT,
+      duration_seconds INTEGER DEFAULT 0,
+      outcome TEXT DEFAULT 'ongoing',
+      success_reason TEXT DEFAULT '',
+      failure_reason TEXT DEFAULT ''
+    );
   `);
   return db;
 }
