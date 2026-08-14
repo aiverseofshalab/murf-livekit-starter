@@ -6,80 +6,53 @@
 
 :root {
   --radius: 1rem;
-  --background: #030712;
-  --foreground: #f1f5f9;
-  --card: rgb(255 255 255 / 4%);
-  --card-foreground: #f1f5f9;
-  --popover: #07101f;
-  --popover-foreground: #f1f5f9;
-  --primary: #22d3ee;
-  --primary-foreground: #03111a;
-  --secondary: rgb(255 255 255 / 6%);
-  --secondary-foreground: #e2e8f0;
-  --muted: rgb(255 255 255 / 5%);
-  --muted-foreground: #94a3b8;
-  --accent: rgb(255 255 255 / 8%);
-  --accent-foreground: #f8fafc;
-  --destructive: #fb7185;
-  --border: rgb(255 255 255 / 10%);
-  --input: rgb(255 255 255 / 12%);
-  --ring: #22d3ee;
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Premium Light-First Healthcare Palette */
+  --background: #f6fbfa;
+  --foreground: #123532;
+  --card: #ffffff;
+  --card-foreground: #123532;
+  --popover: #ffffff;
+  --popover-foreground: #123532;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #eef7f5;
+  --secondary-foreground: #526c68;
+  --muted: #e7f4f1;
+  --muted-foreground: #78918d;
+  --accent: #e7f4f1;
+  --accent-foreground: #0f766e;
+  --destructive: #dc2626;
+  --border: rgba(15, 118, 110, 0.12);
+  --input: rgba(15, 118, 110, 0.16);
+  --ring: #0f766e;
 }
 
 .dark {
-  --background: #030712;
-  --foreground: #f1f5f9;
-  --card: rgb(255 255 255 / 4%);
-  --card-foreground: #f1f5f9;
-  --popover: #07101f;
-  --popover-foreground: #f1f5f9;
-  --primary: #22d3ee;
-  --primary-foreground: #03111a;
-  --secondary: rgb(255 255 255 / 6%);
-  --secondary-foreground: #e2e8f0;
-  --muted: rgb(255 255 255 / 5%);
-  --muted-foreground: #94a3b8;
-  --accent: rgb(255 255 255 / 8%);
-  --accent-foreground: #f8fafc;
-  --destructive: #fb7185;
-  --border: rgb(255 255 255 / 10%);
-  --input: rgb(255 255 255 / 12%);
-  --ring: #22d3ee;
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Enforce Light-First UI as Default Product Identity */
+  --background: #f6fbfa;
+  --foreground: #123532;
+  --card: #ffffff;
+  --card-foreground: #123532;
+  --popover: #ffffff;
+  --popover-foreground: #123532;
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+  --secondary: #eef7f5;
+  --secondary-foreground: #526c68;
+  --muted: #e7f4f1;
+  --muted-foreground: #78918d;
+  --accent: #e7f4f1;
+  --accent-foreground: #0f766e;
+  --destructive: #dc2626;
+  --border: rgba(15, 118, 110, 0.12);
+  --input: rgba(15, 118, 110, 0.16);
+  --ring: #0f766e;
 }
 
 @theme inline {
-  --font-sans:
-    var(--font-public-sans), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
-  --font-mono:
-    var(--font-commit-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
-    'Liberation Mono', 'Courier New', monospace;
+  --font-serif: var(--font-dm-serif), Georgia, serif;
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+  --font-mono: var(--font-commit-mono), monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -99,116 +72,114 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* MediSathi Light Healthcare Tokens */
+  --color-medisathi-bg: #f6fbfa;
+  --color-medisathi-bg-secondary: #eef7f5;
+  --color-medisathi-surface: #ffffff;
+  --color-medisathi-surface-soft: #e7f4f1;
+  --color-medisathi-teal: #0f766e;
+  --color-medisathi-teal-hover: #115e59;
+  --color-medisathi-teal-dark: #134e4a;
+  --color-medisathi-text: #123532;
+  --color-medisathi-text-secondary: #526c68;
+  --color-medisathi-text-muted: #78918d;
+  --color-medisathi-border: rgba(15, 118, 110, 0.12);
+  --color-medisathi-mint: #5eead4;
+  --color-medisathi-amber: #d6a756;
 }
 
 @layer base {
   * {
-    @apply border-foreground/20 outline-ring/50;
+    @apply border-[rgba(15,118,110,0.12)] outline-[#0F766E]/30;
   }
   body {
-    @apply bg-background text-foreground;
-    color-scheme: dark;
+    background-color: #f6fbfa;
+    color: #123532;
+    color-scheme: light;
     background-image:
-      radial-gradient(circle at 8% 12%, rgb(34 211 238 / 12%), transparent 22rem),
-      radial-gradient(circle at 92% 14%, rgb(139 92 246 / 12%), transparent 24rem),
-      radial-gradient(circle at 50% 100%, rgb(20 184 166 / 6%), transparent 30rem);
+      linear-gradient(135deg, #f6fbfa 0%, #eef7f5 45%, #f9fcfb 100%),
+      radial-gradient(circle at 10% 10%, rgba(94, 234, 212, 0.12), transparent 25rem),
+      radial-gradient(circle at 90% 85%, rgba(15, 118, 110, 0.08), transparent 30rem);
+  }
+
+  h1,
+  h2,
+  h3,
+  .font-serif {
+    font-family: var(--font-dm-serif), Georgia, serif;
   }
 }
 
-@keyframes medipulse {
-  0%,
-  100% {
-    transform: scale(0.94);
-    opacity: 0.32;
-  }
-  50% {
-    transform: scale(1.08);
-    opacity: 0.08;
-  }
-}
-@keyframes mediscan {
-  0%,
-  100% {
-    transform: scaleY(0.35);
-  }
-  50% {
-    transform: scaleY(1);
-  }
-}
-.medisathi-pulse {
-  animation: medipulse 2.4s ease-in-out infinite;
-}
-.medisathi-bar {
-  animation: mediscan 850ms ease-in-out infinite alternate;
-  transform-origin: center;
-}
-
-.medisathi-glass {
-  background: rgb(255 255 255 / 4%);
-  border: 1px solid rgb(255 255 255 / 11%);
-  box-shadow:
-    0 20px 60px rgb(0 0 0 / 35%),
-    inset 0 1px 0 rgb(255 255 255 / 5%);
+/* Premium Light Glassmorphism Classes */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-}
-
-.medisathi-pill {
-  background: rgb(255 255 255 / 4%);
-  border: 1px solid rgb(255 255 255 / 12%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 5%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.medisathi-orb {
-  background: radial-gradient(
-    circle at 35% 30%,
-    rgb(34 211 238 / 22%),
-    rgb(255 255 255 / 4%) 42%,
-    rgb(139 92 246 / 12%) 100%
-  );
-  border: 1px solid rgb(103 232 249 / 35%);
+  border: 1px solid rgba(15, 118, 110, 0.12);
   box-shadow:
-    0 0 0 8px rgb(34 211 238 / 4%),
-    0 0 42px rgb(34 211 238 / 22%),
-    0 0 70px rgb(139 92 246 / 14%),
-    inset 0 1px 1px rgb(255 255 255 / 20%);
-  backdrop-filter: blur(18px);
+    0 20px 60px rgba(18, 53, 50, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
-.medisathi-action {
-  background: rgb(8 47 73 / 55%) !important;
-  border: 1px solid rgb(34 211 238 / 55%) !important;
-  box-shadow:
-    0 0 28px rgb(34 211 238 / 16%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
-  color: #cffafe !important;
-  backdrop-filter: blur(14px);
+.glass-light {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(15, 118, 110, 0.1);
 }
 
-.medisathi-action:hover {
-  background: rgb(8 47 73 / 78%) !important;
-  box-shadow:
-    0 0 34px rgb(34 211 238 / 25%),
-    inset 0 1px 0 rgb(255 255 255 / 12%);
+.glass-medium {
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(15, 118, 110, 0.12);
 }
-.medisathi-danger {
-  background: rgb(76 5 25 / 35%) !important;
-  border: 1px solid rgb(251 113 133 / 45%) !important;
-  box-shadow: 0 0 24px rgb(251 113 133 / 10%);
-  color: #fecdd3 !important;
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(15, 118, 110, 0.12);
+  box-shadow: 0 10px 30px rgba(18, 53, 50, 0.04);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(15, 118, 110, 0.25);
+  box-shadow: 0 20px 45px rgba(18, 53, 50, 0.09);
+}
+
+/* Signature Microphone Breathing Animations */
+@keyframes breathingPulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.35;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.1;
+  }
+}
+
+.animate-pulse-ring {
+  animation: breathingPulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .cursor-light {
+    display: none;
+  }
 }

@@ -47,7 +47,7 @@ export function AgentSessionView_01({
   const latestAgentText =
     [...messages]
       .reverse()
-      .find((m) => m.role === 'assistant' || m.from?.isAgent)
+      .find((m) => !m.from?.isLocal)
       ?.message?.toLowerCase() ?? '';
   const isSpecialistActive =
     latestAgentText.includes('clinic and appointment specialist') ||
@@ -75,57 +75,60 @@ export function AgentSessionView_01({
   return (
     <section
       ref={ref}
-      className={cn('min-h-svh overflow-y-auto px-4 py-6 sm:px-6', className)}
+      className={cn(
+        'relative min-h-screen overflow-y-auto bg-[#F6FBFA] px-4 py-6 text-[#123532] sm:px-6',
+        className
+      )}
       {...props}
     >
-      <header className="mx-auto flex max-w-5xl items-center justify-between">
+      <header className="mx-auto flex max-w-5xl items-center justify-between border-b border-[rgba(15,118,110,0.12)] pb-4">
         <div className="flex items-center gap-3">
-          <span className="medisathi-orb grid size-10 place-items-center rounded-xl text-cyan-200">
+          <span className="grid size-10 place-items-center rounded-xl border border-[rgba(15,118,110,0.16)] bg-[#0F766E] text-[#FFFFFF]">
             <HeartPulse />
           </span>
-          <span>
-            <strong className="block text-lg">
+          <div className="text-left">
+            <strong className="block font-serif text-lg text-[#123532]">
               {isSpecialistActive ? 'MediSathi Clinic Specialist' : 'MediSathi'}
             </strong>
-            <span className="text-muted-foreground text-xs">
+            <span className="text-xs text-[#78918D]">
               {isSpecialistActive
-                ? 'Clinic & Appointment Support'
-                : 'Your Friendly AI Health Companion'}
+                ? 'Clinic & Appointment Specialist (Male Voice: Karan)'
+                : 'Your Friendly AI Health Companion (Female Voice: Anisha)'}
             </span>
-          </span>
+          </div>
         </div>
         <span
           className={cn(
-            'medisathi-pill rounded-full px-3 py-1.5 text-xs font-semibold sm:block',
+            'rounded-full border px-3.5 py-1 text-xs font-semibold transition',
             isSpecialistActive
-              ? 'border border-cyan-400/40 bg-cyan-950/60 text-cyan-200'
-              : 'text-cyan-100'
+              ? 'border-[#D6A756] bg-[#FFFFFF] text-[#D6A756]'
+              : 'border-[rgba(15,118,110,0.2)] bg-[#E7F4F1] text-[#0F766E]'
           )}
         >
-          {isSpecialistActive ? 'Clinic & Appointment Specialist' : 'Secure voice session'}
+          {isSpecialistActive ? '● Specialist Active' : '● Live Voice Session'}
         </span>
       </header>
 
       <main className="mx-auto flex max-w-3xl flex-col items-center py-8 text-center sm:py-12">
-        <div className="medisathi-glass w-full rounded-[28px] px-4 py-7 sm:px-8 sm:py-10">
+        <div className="glass-panel w-full rounded-3xl p-6 shadow-xl sm:p-10">
           <div
             className={cn(
               'relative mx-auto grid size-64 place-items-center sm:size-80',
-              listening && 'text-primary',
-              speaking && 'text-cyan-300'
+              listening && 'text-[#0F766E]',
+              speaking && 'text-[#0F766E]'
             )}
           >
             <div
               className={cn(
-                'medisathi-pulse absolute inset-4 rounded-full bg-current',
+                'animate-pulse-ring absolute inset-4 rounded-full border border-[rgba(15,118,110,0.2)] bg-[#0F766E]/5',
                 waiting && 'hidden'
               )}
             />
-            <div className="medisathi-orb relative z-10 grid size-40 place-items-center rounded-full sm:size-48">
+            <div className="relative z-10 grid size-40 place-items-center rounded-full border border-[rgba(15,118,110,0.2)] bg-[#FFFFFF] shadow-2xl sm:size-48">
               <AudioVisualizer
                 isChatOpen={false}
                 audioVisualizerType={audioVisualizerType}
-                audioVisualizerColor={audioVisualizerColor}
+                audioVisualizerColor={audioVisualizerColor || '#0f766e'}
                 audioVisualizerColorShift={audioVisualizerColorShift}
                 audioVisualizerBarCount={audioVisualizerBarCount}
                 audioVisualizerRadialBarCount={audioVisualizerRadialBarCount}
@@ -137,53 +140,55 @@ export function AgentSessionView_01({
               />
             </div>
           </div>
-          <div aria-live="polite" className="mt-2">
-            <div className="text-primary mb-3 flex justify-center">
+          <div aria-live="polite" className="mt-4">
+            <div className="mb-3 flex justify-center text-[#0F766E]">
               {speaking ? (
-                <Volume2 className="size-7" />
+                <Volume2 className="size-7 animate-pulse" />
               ) : listening ? (
-                <Mic className="size-7" />
+                <Mic className="size-7 animate-pulse" />
               ) : (
-                <Sparkles className="size-7 animate-pulse" />
+                <Sparkles className="size-7 animate-pulse text-[#D6A756]" />
               )}
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">
+            <h1 className="font-serif text-2xl font-bold tracking-tight text-[#123532] sm:text-3xl">
               {statusTitle}
             </h1>
-            <p className="text-muted-foreground mt-2">{statusCopy}</p>
+            <p className="mt-2 text-xs text-[#526C68]">{statusCopy}</p>
           </div>
-          <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row">
+          <div className="mx-auto mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row">
             <Button
               variant="outline"
               onClick={() => setTranscriptOpen((open) => !open)}
-              className="medisathi-pill rounded-xl border-0 text-slate-200 hover:bg-white/10"
+              className="rounded-xl border-[rgba(15,118,110,0.16)] bg-[#FFFFFF] text-[#0F766E] hover:bg-[#EEF7F5]"
             >
-              {transcriptOpen ? 'Hide conversation' : 'View conversation'}
+              {transcriptOpen ? 'Hide Transcript' : 'View Transcript'}
             </Button>
             <Button
               variant="destructive"
               onClick={() => session.end()}
-              className="medisathi-danger rounded-xl sm:flex-1"
+              className="rounded-xl bg-[#DC2626] font-semibold text-[#FFFFFF] hover:bg-[#b91c1c] sm:flex-1"
             >
-              <PhoneOff /> End Conversation
+              <PhoneOff className="mr-2 size-4" /> End Conversation
             </Button>
           </div>
           {transcriptOpen && (
             <section
               aria-label="Conversation transcript"
-              className="medisathi-glass mt-6 h-56 w-full max-w-xl overflow-hidden rounded-2xl text-left"
+              className="mx-auto mt-6 h-60 w-full max-w-xl overflow-hidden rounded-2xl border border-[rgba(15,118,110,0.12)] bg-[#FFFFFF] text-left shadow-sm"
             >
-              <div className="border-b px-4 py-3 text-sm font-semibold">Conversation</div>
+              <div className="border-b border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] px-4 py-2.5 text-xs font-semibold text-[#78918D]">
+                Live Transcript
+              </div>
               <AgentChatTranscript
                 agentState={agent.state}
                 messages={messages}
-                className="h-44 [&>div>div]:px-4 [&>div>div]:py-3"
+                className="h-48 text-xs [&>div>div]:px-4 [&>div>div]:py-2"
               />
             </section>
           )}
-          <p className="text-muted-foreground mt-8 max-w-2xl text-xs leading-5">
-            ⚕️ MediSathi shares general health information only. It does not diagnose conditions or
-            replace a qualified healthcare professional.
+          <p className="mx-auto mt-8 max-w-2xl text-[11px] leading-5 text-[#78918D]">
+            ⚕️ MediSathi provides general health information only. It does not diagnose conditions
+            or replace a qualified healthcare professional.
           </p>
         </div>
       </main>

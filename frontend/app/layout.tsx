@@ -1,4 +1,3 @@
-import { Public_Sans } from 'next/font/google';
 import localFont from 'next/font/local';
 import { headers } from 'next/headers';
 import { ThemeProvider } from '@/components/app/theme-provider';
@@ -6,9 +5,10 @@ import { cn } from '@/lib/shadcn/utils';
 import { getAppConfig, getStyles } from '@/lib/utils';
 import '@/styles/globals.css';
 
-const publicSans = Public_Sans({
-  variable: '--font-public-sans',
-  subsets: ['latin'],
+const everett = localFont({
+  src: '../public/everett-light.woff',
+  variable: '--font-sans',
+  display: 'swap',
 });
 
 const commitMono = localFont({
@@ -24,16 +24,6 @@ const commitMono = localFont({
       path: '../fonts/CommitMono-700-Regular.otf',
       weight: '700',
       style: 'normal',
-    },
-    {
-      path: '../fonts/CommitMono-400-Italic.otf',
-      weight: '400',
-      style: 'italic',
-    },
-    {
-      path: '../fonts/CommitMono-700-Italic.otf',
-      weight: '700',
-      style: 'italic',
     },
   ],
 });
@@ -52,11 +42,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(
-        publicSans.variable,
-        commitMono.variable,
-        'scroll-smooth font-sans antialiased'
-      )}
+      className={cn(everett.variable, commitMono.variable, 'scroll-smooth font-sans antialiased')}
     >
       <head>
         {styles && <style>{styles}</style>}

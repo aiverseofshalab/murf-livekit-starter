@@ -1,22 +1,21 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   AlertTriangle,
-  ArrowLeft,
   CheckCircle2,
   Clock,
   Database,
   Eye,
   Filter,
-  HeartPulse,
   RefreshCw,
   Search,
   ShieldAlert,
   UserCheck,
   X,
 } from 'lucide-react';
+import { CursorLight } from '@/components/app/cursor-light';
+import { Navbar } from '@/components/app/navbar';
 import type { EscalationRecord } from '@/lib/db';
 
 interface Stats {
@@ -31,6 +30,7 @@ export default function EscalationDashboardPage() {
   const [records, setRecords] = useState<EscalationRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedRecord, setSelectedRecord] = useState<EscalationRecord | null>(null);
@@ -40,31 +40,30 @@ export default function EscalationDashboardPage() {
   const fetchData = useCallback(
     async (isManualRefresh = false) => {
       if (isManualRefresh) setRefreshing(true);
+      setError(null);
       try {
         const [statsRes, listRes] = await Promise.all([
           fetch('/api/escalations/stats'),
           fetch('/api/escalations'),
         ]);
 
-        if (statsRes.ok) {
-          const statsData = await statsRes.json();
-          setStats(statsData);
+        if (!statsRes.ok || !listRes.ok) {
+          throw new Error('Unable to load escalation data.');
         }
 
-        if (listRes.ok) {
-          const listData = await listRes.json();
-          setRecords(listData);
-          // If modal is open, update selected record with fresh data from database
-          if (selectedRecord) {
-            const updatedCurrent = listData.find(
-              (r: EscalationRecord) => r.reference_id === selectedRecord.reference_id
-            );
-            if (updatedCurrent) setSelectedRecord(updatedCurrent);
-          }
+        const [statsData, listData] = await Promise.all([statsRes.json(), listRes.json()]);
+        setStats(statsData);
+        setRecords(listData);
+        if (selectedRecord) {
+          const updatedCurrent = listData.find(
+            (r: EscalationRecord) => r.reference_id === selectedRecord.reference_id
+          );
+          if (updatedCurrent) setSelectedRecord(updatedCurrent);
         }
         setLastRefreshed(new Date());
       } catch (error) {
         console.error('Error fetching escalation dashboard data:', error);
+        setError("We couldn't load human-help requests. Please try again.");
       } finally {
         setLoading(false);
         if (isManualRefresh) setRefreshing(false);
@@ -73,7 +72,6 @@ export default function EscalationDashboardPage() {
     [selectedRecord]
   );
 
-  // Initial fetch and auto-refresh every 5 seconds
   useEffect(() => {
     fetchData();
     const interval = setInterval(() => {
@@ -97,7 +95,7 @@ export default function EscalationDashboardPage() {
       if (response.ok) {
         await fetchData(true);
       } else {
-        alert('Failed to update status. Please try again.');
+        alert('Failed to update request status. Please try again.');
       }
     } catch (error) {
       console.error('Error updating escalation status:', error);
@@ -120,156 +118,137 @@ export default function EscalationDashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 antialiased">
-      {/* Background Decorative Blur */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-40 -left-40 size-[500px] rounded-full bg-teal-500/10 blur-[120px]" />
-        <div className="absolute top-1/3 -right-40 size-[500px] rounded-full bg-cyan-500/10 blur-[140px]" />
-      </div>
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#F6FBFA] font-sans text-[#123532] antialiased">
+      <CursorLight />
+      <Navbar />
 
-      <div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Navigation / Header */}
-        <header className="mb-8 flex flex-col gap-4 border-b border-white/10 pb-6 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="grid size-12 place-items-center rounded-2xl border border-cyan-400/30 bg-gradient-to-br from-cyan-500/20 to-teal-500/20 text-cyan-300 shadow-lg shadow-cyan-950/50">
-              <HeartPulse className="size-6 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold tracking-tight text-slate-50 sm:text-3xl">
-                  MediSathi
-                </h1>
-                <span className="rounded-full border border-cyan-500/30 bg-cyan-950 px-3 py-0.5 text-xs font-semibold text-cyan-300">
-                  Operations
-                </span>
-              </div>
-              <p className="mt-0.5 text-sm text-slate-400">
-                Human Escalation Dashboard — Monitor healthcare requests requiring human assistance.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 self-start md:self-auto">
-            <button
-              onClick={() => fetchData(true)}
-              disabled={refreshing}
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-medium text-slate-300 transition hover:bg-white/10 disabled:opacity-50"
-              title="Refresh SQLite data"
-            >
-              <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin text-cyan-400' : ''}`} />
-              {refreshing ? 'Refreshing...' : 'Refresh'}
-            </button>
-
-            <Link
-              href="/"
-              className="flex items-center gap-2 rounded-xl bg-cyan-400 px-4 py-2 text-xs font-medium text-slate-900 shadow-md shadow-cyan-950/40 transition hover:bg-cyan-300"
-            >
-              <ArrowLeft className="size-3.5" />
-              Voice Session
-            </Link>
-          </div>
-        </header>
-
-        {/* Statistics Cards Grid */}
-        <section className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Card 1: Total Escalations */}
-          <div className="flex flex-col justify-between rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl backdrop-blur-md">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider text-slate-400 uppercase">
-                Total Escalations
+      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="flex flex-col gap-4 border-b border-[rgba(15,118,110,0.12)] pb-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-serif text-3xl font-normal text-[#123532] sm:text-4xl">
+                Operations Console
+              </h1>
+              <span className="rounded-full border border-[rgba(15,118,110,0.16)] bg-[#E7F4F1] px-3 py-0.5 text-xs font-semibold text-[#0F766E]">
+                Human Escalation
               </span>
-              <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-2 text-cyan-400">
-                <Database className="size-4" />
-              </div>
             </div>
-            <div className="mt-4">
-              <span className="text-3xl font-extrabold tracking-tight text-slate-50">
-                {stats.total}
-              </span>
-              <p className="mt-1 text-xs text-slate-500">Recorded in SQLite database</p>
-            </div>
+            <p className="mt-1 text-sm text-[#78918D]">
+              Monitor healthcare requests requiring human operator assistance
+            </p>
           </div>
 
-          {/* Card 2: Open Requests */}
-          <div className="flex flex-col justify-between rounded-2xl border border-amber-500/30 bg-slate-900/60 p-5 shadow-xl backdrop-blur-md">
+          <button
+            onClick={() => fetchData(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 self-start rounded-xl border border-[rgba(15,118,110,0.16)] bg-[#FFFFFF] px-4 py-2 text-xs font-semibold text-[#0F766E] shadow-xs transition hover:bg-[#EEF7F5] disabled:opacity-50 md:self-auto"
+          >
+            <RefreshCw className={`size-3.5 ${refreshing ? 'animate-spin text-[#0F766E]' : ''}`} />
+            {refreshing ? 'Refreshing...' : 'Refresh Console'}
+          </button>
+        </div>
+
+        {error && (
+          <div
+            className="flex items-center gap-3 rounded-2xl border border-[#DC2626]/20 bg-[#DC2626]/10 p-4 text-sm text-[#123532]"
+            role="alert"
+          >
+            <ShieldAlert className="size-5 shrink-0 text-[#DC2626]" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* Primary Operational Metrics (Open Requests & Urgent Visual Focus) */}
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Hero Operational Card: OPEN REQUESTS */}
+          <div className="glass-panel flex flex-col justify-between rounded-3xl border-l-4 border-l-[#EAB308] p-6 shadow-md">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider text-amber-300 uppercase">
+              <span className="text-xs font-bold tracking-wider text-[#EAB308] uppercase">
                 Open Requests
               </span>
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-2 text-amber-400">
-                <Clock className="size-4" />
-              </div>
+              <Clock className="size-5 text-[#EAB308]" />
             </div>
             <div className="mt-4">
-              <span className="text-3xl font-extrabold tracking-tight text-amber-300">
-                {stats.open}
-              </span>
-              <p className="mt-1 text-xs text-amber-500/80">Awaiting human review</p>
+              <div className="font-serif text-4xl font-bold text-[#123532]">
+                {loading ? '...' : stats.open}
+              </div>
+              <p className="mt-1 text-xs text-[#526C68]">Awaiting operator review</p>
             </div>
           </div>
 
-          {/* Card 3: Urgent / Emergency Requests */}
-          <div className="flex flex-col justify-between rounded-2xl border border-rose-500/30 bg-slate-900/60 p-5 shadow-xl backdrop-blur-md">
+          {/* Hero Operational Card: URGENT / EMERGENCY */}
+          <div className="glass-panel flex flex-col justify-between rounded-3xl border-l-4 border-l-[#DC2626] p-6 shadow-md">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider text-rose-300 uppercase">
+              <span className="text-xs font-bold tracking-wider text-[#DC2626] uppercase">
                 Urgent / Emergency
               </span>
-              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 p-2 text-rose-400">
-                <AlertTriangle className="size-4 animate-bounce" />
-              </div>
+              <AlertTriangle className="size-5 animate-bounce text-[#DC2626]" />
             </div>
             <div className="mt-4">
-              <span className="text-3xl font-extrabold tracking-tight text-rose-400">
-                {stats.urgent}
-              </span>
-              <p className="mt-1 text-xs text-rose-500/80">High urgency or red-flag care</p>
+              <div className="font-serif text-4xl font-bold text-[#DC2626]">
+                {loading ? '...' : stats.urgent}
+              </div>
+              <p className="mt-1 text-xs text-[#526C68]">Requires immediate triage</p>
             </div>
           </div>
 
-          {/* Card 4: Resolved Requests */}
-          <div className="flex flex-col justify-between rounded-2xl border border-emerald-500/30 bg-slate-900/60 p-5 shadow-xl backdrop-blur-md">
+          {/* Secondary Card: Total Escalations */}
+          <div className="glass-card flex flex-col justify-between rounded-2xl p-5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold tracking-wider text-emerald-300 uppercase">
-                Resolved Requests
+              <span className="text-xs font-semibold text-[#78918D] uppercase">
+                Total Escalations
               </span>
-              <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-2 text-emerald-400">
-                <CheckCircle2 className="size-4" />
-              </div>
+              <Database className="size-4 text-[#78918D]" />
             </div>
             <div className="mt-4">
-              <span className="text-3xl font-extrabold tracking-tight text-emerald-400">
-                {stats.resolved}
-              </span>
-              <p className="mt-1 text-xs text-emerald-500/80">Completed human support</p>
+              <div className="font-serif text-3xl font-bold text-[#123532]">
+                {loading ? '...' : stats.total}
+              </div>
+              <p className="mt-1 text-xs text-[#78918D]">Recorded in SQLite</p>
+            </div>
+          </div>
+
+          {/* Secondary Card: Resolved Requests */}
+          <div className="glass-card flex flex-col justify-between rounded-2xl border-l-4 border-l-[#22C55E] p-5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[#22C55E] uppercase">Resolved</span>
+              <CheckCircle2 className="size-4 text-[#22C55E]" />
+            </div>
+            <div className="mt-4">
+              <div className="font-serif text-3xl font-bold text-[#22C55E]">
+                {loading ? '...' : stats.resolved}
+              </div>
+              <p className="mt-1 text-xs text-[#22C55E]/80">Completed support</p>
             </div>
           </div>
         </section>
 
-        {/* Search and Filters Bar */}
-        <div className="mb-6 flex flex-col items-stretch justify-between gap-4 md:flex-row md:items-center">
-          {/* Search Input */}
+        {/* Filter and Search Bar */}
+        <div className="flex flex-col items-stretch justify-between gap-4 md:flex-row md:items-center">
           <div className="relative max-w-md flex-1">
-            <Search className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-[#78918D]" />
             <input
               type="text"
-              placeholder="Search by Ref ID, name, or keywords..."
+              aria-label="Search escalation requests"
+              placeholder="Search by Ref ID, caller name, or reason..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-slate-800 bg-slate-900/80 py-2.5 pr-4 pl-10 text-sm text-slate-200 placeholder-slate-500 transition focus:border-cyan-500/50 focus:outline-none"
+              className="glass-light w-full rounded-xl border border-[rgba(15,118,110,0.16)] py-2.5 pr-4 pl-10 text-xs text-[#123532] placeholder-[#78918D] transition focus:border-[#0F766E]/50 focus:outline-none"
             />
           </div>
 
-          {/* Filter Tabs */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-slate-800 bg-slate-900/80 p-1">
-            <Filter className="mr-1 ml-2 size-3.5 text-slate-400" />
+          <div className="flex max-w-full items-center gap-1.5 overflow-x-auto rounded-xl border border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] p-1">
+            <Filter className="mr-1 ml-2 size-3.5 text-[#78918D]" />
             {['all', 'open', 'in_progress', 'resolved'].map((st) => (
               <button
                 key={st}
+                type="button"
                 onClick={() => setStatusFilter(st)}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition ${
+                className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize transition ${
                   statusFilter === st
-                    ? 'border border-cyan-400/30 bg-cyan-500/20 text-cyan-300'
-                    : 'text-slate-400 hover:bg-white/5 hover:text-slate-200'
+                    ? 'bg-[#FFFFFF] text-[#0F766E] shadow-xs'
+                    : 'text-[#526C68] hover:text-[#123532]'
                 }`}
               >
                 {st.replace('_', ' ')}
@@ -279,47 +258,55 @@ export default function EscalationDashboardPage() {
         </div>
 
         {/* Escalation Request Table */}
-        <section className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 shadow-2xl backdrop-blur-md">
+        <section className="glass-panel overflow-hidden rounded-2xl shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="border-b border-slate-800 bg-slate-950/80 text-xs font-semibold tracking-wider text-slate-400 uppercase">
+              <thead className="border-b border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] text-[11px] font-semibold tracking-wider text-[#78918D] uppercase">
                 <tr>
-                  <th className="px-6 py-4">Reference ID</th>
-                  <th className="px-6 py-4">Name</th>
-                  <th className="px-6 py-4">Reason</th>
-                  <th className="px-6 py-4">Urgency</th>
-                  <th className="px-6 py-4">Language</th>
-                  <th className="px-6 py-4">Follow-up</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Created</th>
-                  <th className="px-6 py-4 text-right">Action</th>
+                  <th className="px-6 py-3.5">Reference ID</th>
+                  <th className="px-6 py-3.5">Caller Name</th>
+                  <th className="px-6 py-3.5">Reason</th>
+                  <th className="px-6 py-3.5">Urgency</th>
+                  <th className="px-6 py-3.5">Language</th>
+                  <th className="px-6 py-3.5">Follow-up</th>
+                  <th className="px-6 py-3.5">Status</th>
+                  <th className="px-6 py-3.5">Created</th>
+                  <th className="px-6 py-3.5 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
+              <tbody className="divide-y divide-[rgba(15,118,110,0.08)] text-[#526C68]">
                 {loading ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
-                      <RefreshCw className="mx-auto mb-2 size-6 animate-spin text-cyan-400" />
-                      Loading escalation database...
+                    <td colSpan={9} className="px-6 py-12 text-center text-[#78918D]">
+                      <RefreshCw className="mx-auto mb-2 size-5 animate-spin text-[#0F766E]" />
+                      Loading escalation records...
                     </td>
                   </tr>
                 ) : filteredRecords.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="px-6 py-12 text-center text-slate-500">
-                      No escalation requests found matching your filters.
+                    <td colSpan={9} className="px-6 py-12 text-center text-[#78918D]">
+                      <div className="mx-auto max-w-xs space-y-2 py-6">
+                        <CheckCircle2 className="mx-auto size-10 text-[#0F766E] opacity-70" />
+                        <p className="font-serif text-xl text-[#123532]">
+                          Everything looks clear right now.
+                        </p>
+                        <p className="text-xs text-[#78918D]">
+                          No human-help requests need attention right now.
+                        </p>
+                      </div>
                     </td>
                   </tr>
                 ) : (
                   filteredRecords.map((r) => (
                     <tr
                       key={r.reference_id}
-                      className="cursor-pointer transition hover:bg-white/[0.02]"
+                      className="cursor-pointer transition hover:bg-white/80"
                       onClick={() => setSelectedRecord(r)}
                     >
-                      <td className="px-6 py-4 font-mono font-bold text-cyan-300">
+                      <td className="px-6 py-4 font-mono font-semibold text-[#0F766E]">
                         {r.reference_id}
                       </td>
-                      <td className="px-6 py-4 font-medium text-slate-200">
+                      <td className="px-6 py-4 font-medium text-[#123532]">
                         {r.name || 'Anonymous'}
                       </td>
                       <td className="max-w-xs truncate px-6 py-4" title={r.reason}>
@@ -328,20 +315,21 @@ export default function EscalationDashboardPage() {
                       <td className="px-6 py-4">
                         <UrgencyBadge urgency={r.urgency} />
                       </td>
-                      <td className="px-6 py-4 text-slate-400">{r.language || 'English'}</td>
-                      <td className="px-6 py-4 text-slate-400">
-                        {r.preferred_follow_up || 'None'}
+                      <td className="px-6 py-4 text-[#78918D]">{r.language || 'English'}</td>
+                      <td className="px-6 py-4 text-[#78918D]">
+                        {r.preferred_follow_up || 'Standard'}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={r.status} />
                       </td>
-                      <td className="px-6 py-4 text-xs whitespace-nowrap text-slate-400">
+                      <td className="px-6 py-4 font-mono text-xs whitespace-nowrap text-[#78918D]">
                         {formatDate(r.created_at)}
                       </td>
                       <td className="px-6 py-4 text-right" onClick={(e) => e.stopPropagation()}>
                         <button
+                          type="button"
                           onClick={() => setSelectedRecord(r)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-slate-800 px-3 py-1.5 text-xs font-medium text-cyan-300 transition hover:bg-slate-700"
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[rgba(15,118,110,0.16)] bg-[#FFFFFF] px-3 py-1.5 text-xs font-semibold text-[#0F766E] transition hover:bg-[#EEF7F5]"
                         >
                           <Eye className="size-3.5" />
                           View
@@ -353,7 +341,8 @@ export default function EscalationDashboardPage() {
               </tbody>
             </table>
           </div>
-          <div className="flex items-center justify-between border-t border-slate-800/60 bg-slate-950/40 px-6 py-3 text-xs text-slate-500">
+
+          <div className="flex items-center justify-between border-t border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] px-6 py-3 text-xs text-[#78918D]">
             <span>
               Showing {filteredRecords.length} of {records.length} escalation requests
             </span>
@@ -362,131 +351,109 @@ export default function EscalationDashboardPage() {
             </span>
           </div>
         </section>
-      </div>
+      </main>
 
       {/* Details Modal */}
       {selectedRecord && (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/80 p-4 backdrop-blur-sm">
-          <div className="relative my-8 w-full max-w-2xl rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl sm:p-8">
-            {/* Close Button */}
+        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-black/40 p-4 backdrop-blur-sm">
+          <div className="glass-panel relative my-8 w-full max-w-2xl space-y-6 rounded-3xl p-6 text-left shadow-2xl sm:p-8">
             <button
+              type="button"
               onClick={() => setSelectedRecord(null)}
-              className="absolute top-5 right-5 rounded-xl p-2 text-slate-400 transition hover:bg-white/10 hover:text-slate-200"
+              className="absolute top-5 right-5 rounded-xl p-2 text-[#78918D] transition hover:bg-[#EEF7F5] hover:text-[#123532]"
             >
               <X className="size-5" />
             </button>
 
-            {/* Modal Header */}
-            <div className="mb-6 flex items-center gap-3 border-b border-slate-800 pb-4">
-              <div className="grid size-10 place-items-center rounded-xl border border-cyan-500/20 bg-cyan-500/10 text-cyan-300">
+            <div className="flex items-center gap-3 border-b border-[rgba(15,118,110,0.12)] pb-4">
+              <div className="grid size-10 place-items-center rounded-xl bg-[#0F766E] text-[#FFFFFF]">
                 <UserCheck className="size-5" />
               </div>
               <div>
-                <h2 className="flex items-center gap-3 text-xl font-bold text-slate-50">
-                  Request Details
-                  <span className="rounded-md border border-cyan-500/30 bg-cyan-950 px-2.5 py-0.5 font-mono text-sm font-semibold text-cyan-300">
+                <h2 className="flex items-center gap-3 font-serif text-xl font-bold text-[#123532]">
+                  Escalation Request
+                  <span className="rounded-md border border-[rgba(15,118,110,0.16)] bg-[#E7F4F1] px-2.5 py-0.5 font-mono text-xs font-semibold text-[#0F766E]">
                     {selectedRecord.reference_id}
                   </span>
                 </h2>
-                <p className="mt-0.5 text-xs text-slate-400">
-                  Created at {new Date(selectedRecord.created_at).toLocaleString()}
+                <p className="mt-0.5 text-xs text-[#78918D]">
+                  Logged at {new Date(selectedRecord.created_at).toLocaleString()}
                 </p>
               </div>
             </div>
 
-            {/* Modal Details Grid */}
-            <div className="space-y-4 text-sm">
+            <div className="space-y-4 text-xs">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500 uppercase">
+                <div className="rounded-xl border border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] p-3.5">
+                  <span className="mb-1 block text-[11px] font-semibold text-[#78918D] uppercase">
                     Caller Name
                   </span>
-                  <span className="font-medium text-slate-200">
-                    {selectedRecord.name || 'Not provided'}
+                  <span className="font-medium text-[#123532]">
+                    {selectedRecord.name || 'Anonymous'}
                   </span>
                 </div>
 
-                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500 uppercase">
-                    User / Caller ID
-                  </span>
-                  <span className="font-mono text-xs break-all text-slate-300">
-                    {selectedRecord.user_id}
-                  </span>
-                </div>
-
-                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500 uppercase">
+                <div className="rounded-xl border border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] p-3.5">
+                  <span className="mb-1 block text-[11px] font-semibold text-[#78918D] uppercase">
                     Urgency Level
                   </span>
                   <UrgencyBadge urgency={selectedRecord.urgency} />
                 </div>
 
-                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
-                  <span className="mb-1 block text-xs font-semibold text-slate-500 uppercase">
-                    Language & Follow-up
+                <div className="rounded-xl border border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] p-3.5">
+                  <span className="mb-1 block text-[11px] font-semibold text-[#78918D] uppercase">
+                    Language &amp; Preferred Follow-up
                   </span>
-                  <span className="text-slate-200">
+                  <span className="text-[#123532]">
                     {selectedRecord.language || 'English'} •{' '}
                     {selectedRecord.preferred_follow_up || 'Standard'}
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+              <div className="space-y-3 rounded-xl border border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] p-4">
                 <div>
-                  <span className="mb-1 block text-xs font-semibold text-slate-500 uppercase">
+                  <span className="mb-1 block text-[11px] font-semibold text-[#78918D] uppercase">
                     Escalation Reason
                   </span>
-                  <p className="font-medium text-slate-200">{selectedRecord.reason}</p>
+                  <p className="font-medium text-[#123532]">{selectedRecord.reason}</p>
                 </div>
 
                 <div>
-                  <span className="mb-1 block text-xs font-semibold text-slate-500 uppercase">
+                  <span className="mb-1 block text-[11px] font-semibold text-[#78918D] uppercase">
                     Human-Friendly Summary
                   </span>
-                  <p className="rounded-lg border border-slate-800 bg-slate-900/60 p-3 text-sm leading-relaxed whitespace-pre-wrap text-slate-300">
+                  <p className="rounded-lg border border-[rgba(15,118,110,0.12)] bg-[#FFFFFF] p-3 leading-relaxed whitespace-pre-wrap text-[#526C68]">
                     {selectedRecord.summary}
                   </p>
                 </div>
-
-                {selectedRecord.what_was_checked && (
-                  <div>
-                    <span className="mb-1 block text-xs font-semibold text-slate-500 uppercase">
-                      What Was Checked / Prior Triage
-                    </span>
-                    <p className="text-xs leading-normal text-slate-400">
-                      {selectedRecord.what_was_checked}
-                    </p>
-                  </div>
-                )}
               </div>
 
-              {/* Status Update Control */}
-              <div className="border-t border-slate-800 pt-2">
-                <span className="mb-3 block text-xs font-semibold text-slate-400 uppercase">
+              <div className="border-t border-[rgba(15,118,110,0.12)] pt-2">
+                <span className="mb-3 block text-[11px] font-semibold text-[#78918D] uppercase">
                   Operator Status Control (SQLite Persisted)
                 </span>
                 <div className="flex flex-wrap items-center gap-3">
                   {(['open', 'in_progress', 'resolved'] as const).map((st) => (
                     <button
                       key={st}
+                      type="button"
                       disabled={updatingStatus}
                       onClick={() => handleUpdateStatus(selectedRecord.reference_id, st)}
                       className={`rounded-xl px-4 py-2 text-xs font-semibold tracking-wider uppercase transition ${
                         selectedRecord.status === st
                           ? st === 'open'
-                            ? 'bg-amber-500 font-bold text-slate-950 shadow-lg shadow-amber-950/50'
+                            ? 'bg-[#EAB308] font-bold text-[#FFFFFF] shadow-md'
                             : st === 'in_progress'
-                              ? 'bg-cyan-500 font-bold text-slate-950 shadow-lg shadow-cyan-950/50'
-                              : 'bg-emerald-500 font-bold text-slate-950 shadow-lg shadow-emerald-950/50'
-                          : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                              ? 'bg-[#0F766E] font-bold text-[#FFFFFF] shadow-md'
+                              : 'bg-[#22C55E] font-bold text-[#FFFFFF] shadow-md'
+                          : 'border border-[rgba(15,118,110,0.16)] bg-[#FFFFFF] text-[#526C68] hover:bg-[#EEF7F5]'
                       }`}
                     >
                       {st.replace('_', ' ')}
                     </button>
                   ))}
-                  {updatingStatus && <span className="text-xs text-cyan-400">Saving...</span>}
+                  {updatingStatus && <span className="text-xs text-[#0F766E]">Saving...</span>}
                 </div>
               </div>
             </div>
@@ -502,26 +469,26 @@ function UrgencyBadge({ urgency }: { urgency: string }) {
   switch (u) {
     case 'emergency':
       return (
-        <span className="inline-flex animate-pulse items-center gap-1 rounded-full border border-rose-500/40 bg-rose-500/20 px-2.5 py-1 text-xs font-extrabold text-rose-300">
-          <ShieldAlert className="size-3" /> EMERGENCY
+        <span className="inline-flex animate-pulse items-center gap-1.5 rounded-full border border-[#DC2626]/30 bg-[#DC2626]/15 px-2.5 py-1 text-xs font-extrabold text-[#DC2626]">
+          <ShieldAlert className="size-3" /> 🚨 EMERGENCY
         </span>
       );
     case 'high':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-orange-500/40 bg-orange-500/20 px-2.5 py-1 text-xs font-bold text-orange-300">
-          HIGH
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#F97316]/30 bg-[#F97316]/15 px-2.5 py-1 text-xs font-bold text-[#F97316]">
+          ⚠️ High Priority
         </span>
       );
     case 'medium':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/30 bg-cyan-500/20 px-2.5 py-1 text-xs font-semibold text-cyan-300">
-          MEDIUM
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(15,118,110,0.16)] bg-[#E7F4F1] px-2.5 py-1 text-xs font-semibold text-[#0F766E]">
+          ! Medium
         </span>
       );
     default:
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-800 px-2.5 py-1 text-xs font-medium text-slate-300">
-          LOW
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] px-2.5 py-1 text-xs font-medium text-[#78918D]">
+          ● Low
         </span>
       );
   }
@@ -532,24 +499,24 @@ function StatusBadge({ status }: { status: string }) {
   switch (s) {
     case 'open':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300">
-          OPEN
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#EAB308]/30 bg-[#EAB308]/15 px-2.5 py-1 text-xs font-semibold text-[#EAB308]">
+          ● Open
         </span>
       );
     case 'in_progress':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-blue-500/40 bg-blue-500/20 px-2.5 py-1 text-xs font-semibold text-blue-300">
-          IN PROGRESS
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[rgba(15,118,110,0.2)] bg-[#E7F4F1] px-2.5 py-1 text-xs font-semibold text-[#0F766E]">
+          🔄 In Progress
         </span>
       );
     case 'resolved':
       return (
-        <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-500/20 px-2.5 py-1 text-xs font-semibold text-emerald-300">
-          RESOLVED
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[#22C55E]/30 bg-[#22C55E]/15 px-2.5 py-1 text-xs font-semibold text-[#22C55E]">
+          ✓ Resolved
         </span>
       );
     default:
-      return <span className="text-xs text-slate-400">{status}</span>;
+      return <span className="text-xs text-[#78918D]">{status}</span>;
   }
 }
 
