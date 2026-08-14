@@ -110,5 +110,4 @@ async def test_refuses_harmful_request() -> None:
             )
         )
 
-        
         result.expect.no_more_events()

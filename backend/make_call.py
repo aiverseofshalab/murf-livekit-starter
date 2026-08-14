@@ -1,4 +1,5 @@
 """Root convenience entrypoint delegating to src/make_call.py."""
+
 import asyncio
 import importlib.util
 import sys

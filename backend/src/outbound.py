@@ -71,9 +71,7 @@ def normalize_sip_destination(destination: str, domain: str | None = None) -> st
         raise ValueError("Destination must be a non-empty string.")
     destination = destination.strip()
     domain = (
-        domain
-        or os.environ.get("SIP_DEFAULT_DOMAIN", "").strip()
-        or DEFAULT_SIP_DOMAIN
+        domain or os.environ.get("SIP_DEFAULT_DOMAIN", "").strip() or DEFAULT_SIP_DOMAIN
     )
 
     # Already a full SIP URI
@@ -271,7 +269,9 @@ def classify_call_failure(error: Exception) -> tuple[str, str]:
         return "busy", f"User's line was busy.{code_str}"
     if any(word in detail_lower for word in ("declin", "reject", "forbidden")):
         return "declined", f"Call was declined or rejected.{code_str}"
-    if any(word in detail_lower for word in ("no answer", "unavailable", "ring", "timeout")):
+    if any(
+        word in detail_lower for word in ("no answer", "unavailable", "ring", "timeout")
+    ):
         return "no_answer", f"Call was not answered or timed out.{code_str}"
     return (
         "provider_failure",

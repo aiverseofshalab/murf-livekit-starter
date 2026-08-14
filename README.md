@@ -422,6 +422,75 @@ uv run pytest tests/test_escalation.py
 
 ---
 
+## Day 9 — Specialist Agent Handoff
+
+MediSathi features real agent handoff to a dedicated **Clinic & Appointment Specialist** agent with a **distinct, audibly different Murf Falcon voice**.
+
+### Architecture & Handoff Flow
+
+```
+User
+  │
+  ▼
+MediSathi (Main Agent) ── [Voice: Anisha (Female, en-IN)]
+  │
+  ├── Requires clinic/facility/appointment help?
+  │     ├── NO  ──► MediSathi continues conversation
+  │     │
+  │     └── YES ──► "I'll connect you with our clinic and appointment specialist..."
+  │                       │
+  │                       ▼
+  │             REAL LIVEKIT AGENT HANDOFF (session.update_agent)
+  │                       │
+  │                       ▼
+  └───────────────► MediSathi Clinic Specialist ── [Voice: Karan (Male, en-IN)]
+                          │
+                          ├── Greets user with transferred context (no repetition needed)
+                          ├── Calls lookup_healthcare_facility (Day 5 facility tool)
+                          ├── Provides appointment preparation guidance
+                          └── Hands back to main agent if requested (transfer_back_to_medisathi)
+```
+
+### Key Capabilities & Safety Boundaries
+
+1. **Distinct Murf Voices**:
+   - **Main Agent**: Uses `voice="Anisha"` (configurable via `MURF_MAIN_VOICE`).
+   - **Specialist Agent**: Uses `voice="Karan"` (configurable via `MURF_SPECIALIST_VOICE`).
+   - The user clearly hears an audible change in voice upon handoff.
+
+2. **Specialist Role & Boundaries**:
+   - Focuses strictly on finding healthcare facilities (PHCs, CHCs, clinics, hospitals), facility categories, and appointment preparation.
+   - **Strict Guardrails**: Does NOT diagnose, prescribe, invent appointment slots/doctor availability, or claim an appointment is booked without a real booking system.
+   - **Emergency Safety**: Red-flag symptoms ("severe chest pain") trigger immediate emergency advice, NOT clinic appointment lookup.
+
+3. **Context Transfer**:
+   - Handoff passes safe context (`user_request`, `location`, `reason`, `language`).
+   - The user does NOT need to repeat their problem to the specialist.
+
+4. **Handoff Failure Fallback**:
+   - If specialist handoff fails, the main agent gracefully explains: *"I couldn't connect you to the clinic specialist right now, but I can still try to help you with the information I have."* without crashing or ending the call.
+
+### Environment Configuration
+
+Configure custom Murf Falcon voices in `backend/.env.local`:
+
+```env
+MURF_MAIN_VOICE=Anisha
+MURF_SPECIALIST_VOICE=Karan
+```
+
+### Testing Day 9
+
+Run the comprehensive Day 9 handoff test suite:
+
+```bash
+cd backend
+uv run pytest tests/test_handoff.py
+```
+
+
+---
+
 ## Links
 
 - [Murf API Docs](https://murf.ai/api/docs)

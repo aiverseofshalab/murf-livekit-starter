@@ -44,16 +44,30 @@ export function AgentSessionView_01({
   const agent = useAgent();
   const { messages } = useSessionMessages(session);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
+  const latestAgentText = [...messages]
+    .reverse()
+    .find((m) => m.role === 'assistant' || m.from?.isAgent)?.message?.toLowerCase() ?? '';
+  const isSpecialistActive =
+    latestAgentText.includes('clinic and appointment specialist') ||
+    latestAgentText.includes('clinic specialist') ||
+    (latestAgentText.includes('specialist') && latestAgentText.includes('clinic'));
+
+  const activeAgentName = isSpecialistActive
+    ? 'Clinic & Appointment Specialist'
+    : 'MediSathi';
+
   const speaking = agent.state === 'speaking';
   const listening = agent.state === 'listening' || agent.state === 'pre-connect-buffering';
   const waiting = !speaking && !listening;
+
   const statusTitle = speaking
-    ? 'MediSathi is speaking'
+    ? `${activeAgentName} is speaking`
     : listening
       ? 'Listening to you'
-      : 'Connecting to MediSathi...';
+      : `Connecting to ${activeAgentName}...`;
+
   const statusCopy = speaking
-    ? 'Please wait while MediSathi responds...'
+    ? `Please wait while ${activeAgentName} responds...`
     : listening
       ? "Go ahead, I'm listening..."
       : 'Preparing a safe, private voice connection.';
@@ -70,14 +84,28 @@ export function AgentSessionView_01({
             <HeartPulse />
           </span>
           <span>
-            <strong className="block text-lg">MediSathi</strong>
-            <span className="text-muted-foreground text-xs">Your Friendly AI Health Companion</span>
+            <strong className="block text-lg">
+              {isSpecialistActive ? 'MediSathi Clinic Specialist' : 'MediSathi'}
+            </strong>
+            <span className="text-muted-foreground text-xs">
+              {isSpecialistActive
+                ? 'Clinic & Appointment Support'
+                : 'Your Friendly AI Health Companion'}
+            </span>
           </span>
         </div>
-        <span className="medisathi-pill hidden rounded-full px-3 py-1.5 text-xs font-semibold text-cyan-100 sm:block">
-          Secure voice session
+        <span
+          className={cn(
+            'medisathi-pill rounded-full px-3 py-1.5 text-xs font-semibold sm:block',
+            isSpecialistActive
+              ? 'border border-cyan-400/40 bg-cyan-950/60 text-cyan-200'
+              : 'text-cyan-100'
+          )}
+        >
+          {isSpecialistActive ? 'Clinic & Appointment Specialist' : 'Secure voice session'}
         </span>
       </header>
+
       <main className="mx-auto flex max-w-3xl flex-col items-center py-8 text-center sm:py-12">
         <div className="medisathi-glass w-full rounded-[28px] px-4 py-7 sm:px-8 sm:py-10">
           <div

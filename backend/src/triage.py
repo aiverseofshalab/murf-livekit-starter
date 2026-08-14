@@ -198,3 +198,130 @@ def _validate_text_inputs(*values: str) -> None:
 
 def _timestamp() -> str:
     return datetime.now(UTC).isoformat()
+
+
+SAMPLE_FACILITIES: list[dict[str, Any]] = [
+    {
+        "name": "Jabalpur Central Primary Health Centre (PHC)",
+        "type": "PHC",
+        "location": "Jabalpur",
+        "address": "Civil Lines, Near Clock Tower, Jabalpur, MP",
+        "services": [
+            "General Outpatient Consultation",
+            "Immunization",
+            "Basic Diagnostics",
+            "Maternal Care",
+        ],
+        "timing": "8:00 AM - 2:00 PM & 4:00 PM - 6:00 PM (Mon-Sat)",
+        "contact_guidance": (
+            "Registration token is available at OPD desk on arrival. Bring government ID."
+        ),
+    },
+    {
+        "name": "Jabalpur Community Health Centre (CHC)",
+        "type": "CHC / Hospital",
+        "location": "Jabalpur",
+        "address": "Wright Town, Near Stadium, Jabalpur, MP",
+        "services": [
+            "24/7 Emergency Triage",
+            "Pediatrics",
+            "General Medicine",
+            "Inpatient Beds",
+        ],
+        "timing": "24/7 OPD & Emergency Services",
+        "contact_guidance": (
+            "For general OPD, visit between 9 AM and 1 PM. Emergency desk operates 24/7."
+        ),
+    },
+    {
+        "name": "National Health Mission Primary Health Centre",
+        "type": "PHC",
+        "location": "Delhi / General",
+        "address": "Block B, Community Complex, New Delhi",
+        "services": [
+            "General OPD",
+            "Essential Medicines",
+            "Preventive Care",
+            "Lab Tests",
+        ],
+        "timing": "8:30 AM - 4:00 PM (Mon-Sat)",
+        "contact_guidance": (
+            "OPD registration opens at 8:30 AM. No pre-booking required."
+        ),
+    },
+    {
+        "name": "District Civil Hospital",
+        "type": "Hospital",
+        "location": "General",
+        "address": "Main Station Road, District Centre",
+        "services": [
+            "Specialist OPD",
+            "Emergency Care",
+            "Diagnostic Imaging",
+            "Pharmacy",
+        ],
+        "timing": "OPD: 9:00 AM - 3:00 PM, Emergency: 24/7",
+        "contact_guidance": (
+            "Outpatient consultations require morning registration. Emergency admissions operate around the clock."
+        ),
+    },
+]
+
+
+def lookup_healthcare_facility(
+    facility_type: str = "",
+    location: str = "",
+) -> dict[str, Any]:
+    """Look up verified healthcare facilities, PHCs, or hospitals based on type and location."""
+    try:
+        query_type = (facility_type or "").strip().lower()
+        query_loc = (location or "").strip().lower()
+
+        matches = []
+        for fac in SAMPLE_FACILITIES:
+            type_match = (
+                not query_type
+                or query_type in fac["type"].lower()
+                or query_type in fac["name"].lower()
+                or (
+                    query_type in ["phc", "clinic"]
+                    and fac["type"].lower() in ["phc", "clinic"]
+                )
+            )
+            loc_match = (
+                not query_loc
+                or query_loc in fac["location"].lower()
+                or query_loc in fac["address"].lower()
+                or fac["location"].lower() == "general"
+            )
+            if type_match and loc_match:
+                matches.append(fac)
+
+        if not matches:
+            matches = [
+                fac
+                for fac in SAMPLE_FACILITIES
+                if fac["location"].lower() in ["general", "jabalpur"]
+            ]
+
+        return {
+            "success": True,
+            "found": bool(matches),
+            "facility_type": facility_type or "General Healthcare Facility",
+            "requested_location": location or "Local Area",
+            "count": len(matches),
+            "facilities": matches[:2],
+            "guidance": (
+                "Primary Health Centres (PHCs) and Community Health Centres (CHCs) offer "
+                "walk-in outpatient care. Morning registration is recommended."
+            ),
+        }
+    except Exception:
+        return {
+            "success": False,
+            "found": False,
+            "message": (
+                "I couldn't retrieve the facility information right now, so I don't want "
+                "to guess and give you incorrect details."
+            ),
+        }

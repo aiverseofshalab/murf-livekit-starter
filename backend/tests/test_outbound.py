@@ -41,9 +41,7 @@ def test_phone_number_masking_does_not_expose_destination() -> None:
 
 
 def test_bare_username_becomes_sip_uri() -> None:
-    assert (
-        normalize_sip_destination("myuser") == "sip:myuser@sip.linphone.org"
-    )
+    assert normalize_sip_destination("myuser") == "sip:myuser@sip.linphone.org"
 
 
 def test_bare_username_with_explicit_domain() -> None:
@@ -173,7 +171,9 @@ def test_sip_metadata_round_trip() -> None:
 
 def test_legacy_phone_number_metadata_still_parses() -> None:
     """Metadata from older Day 5 code (only phone_number key) still works."""
-    legacy = json.dumps({"phone_number": "+919876543210", "call_type": "triage_followup"})
+    legacy = json.dumps(
+        {"phone_number": "+919876543210", "call_type": "triage_followup"}
+    )
     parsed = parse_call_metadata(legacy)
     assert parsed["destination"] == "+919876543210"
     assert parsed["phone_number"] == "+919876543210"
@@ -321,9 +321,7 @@ async def test_outbound_sip_call_uses_correct_uri_and_trunk() -> None:
         "url", "key", "secret", "ST_linphone", answer_timeout_seconds=10
     )
 
-    result = await make_outbound_call(
-        "testuser", config=config, livekit_api=client
-    )
+    result = await make_outbound_call("testuser", config=config, livekit_api=client)
 
     assert result["success"] is True
     assert result["outcome"] == "answered"
@@ -410,9 +408,7 @@ async def test_unavailable_sip_call_returns_no_answer() -> None:
         "url", "key", "secret", "ST_test", answer_timeout_seconds=10
     )
 
-    result = await make_outbound_call(
-        "testuser", config=config, livekit_api=client
-    )
+    result = await make_outbound_call("testuser", config=config, livekit_api=client)
 
     assert result["success"] is False
     assert result["outcome"] == "no_answer"

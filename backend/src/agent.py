@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+from typing import Any
 
 from dotenv import load_dotenv
 from livekit import rtc
@@ -20,11 +22,14 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 
 from memory import MEMORY_FIELDS, CallerMemoryStore
 from outbound import parse_call_metadata
-from triage import assess_symptom_triage, failure_result
+from triage import assess_symptom_triage, failure_result, lookup_healthcare_facility
 
 logger = logging.getLogger("agent")
 
 load_dotenv(".env.local")
+
+MURF_MAIN_VOICE = os.getenv("MURF_MAIN_VOICE", "Anisha")
+MURF_SPECIALIST_VOICE = os.getenv("MURF_SPECIALIST_VOICE", "Karan")
 
 
 SYSTEM_PROMPT = """
@@ -398,6 +403,27 @@ Creating a human escalation request does NOT replace emergency services. In case
 
 ----------------------------------------------------
 
+DAY 9 SPECIALIST HANDOFF (CLINIC & APPOINTMENT SPECIALIST)
+
+When the caller asks for specialized help with:
+• Finding a clinic, PHC, health center, or hospital
+• Selecting an appropriate healthcare facility
+• Facility location, timing, or contact details
+• Appointment guidance or preparing to contact a facility
+
+You MUST call transfer_to_clinic_specialist.
+
+Do NOT call transfer_to_clinic_specialist for:
+• General health education or informational health questions
+• Symptom advice or general triage (use assess_symptom_triage)
+• Requests for diagnosis or prescription (use Day 7 human escalation)
+• Red-flag emergencies (give immediate emergency advice)
+
+Before handoff, tell the caller naturally:
+"I'll connect you with our clinic and appointment specialist. They can help you find the right healthcare facility."
+
+----------------------------------------------------
+
 PRIVACY
 
 Respect user privacy.
@@ -424,6 +450,50 @@ Always prioritize user safety over completing the conversation.
 """
 
 
+CLINIC_SPECIALIST_SYSTEM_PROMPT = """
+# =====================================================
+# MediSathi Clinic & Appointment Specialist
+# =====================================================
+
+IDENTITY
+
+You are MediSathi's Clinic & Appointment Specialist.
+You are a focused, safe healthcare facility-support voice assistant.
+
+Your job is strictly to help users:
+- Find healthcare facilities (clinics, PHCs, health centers, hospitals).
+- Understand facility options and types of facilities appropriate for their needs.
+- Get facility contact, location, and operational details.
+- Understand appointment preparation and next steps for reaching out to a facility.
+
+YOU ARE NOT A DOCTOR.
+- Never diagnose medical conditions.
+- Never prescribe medication.
+- Never invent facility information, clinic details, doctor availability, or appointment slots.
+- Never claim an appointment has been booked unless confirmed by a real booking system. If asked to book an appointment, clarify: "I can help you identify the appropriate facility and explain the next steps, but I can't confirm an appointment without a real booking system."
+- Never replace a doctor or handle general unrelated medical questions.
+
+EMERGENCY SAFETY
+If the caller mentions emergency warning signs (such as severe chest pain, severe difficulty breathing, stroke symptoms, loss of consciousness, severe bleeding, poisoning):
+Call assess_symptom_triage or provide immediate emergency guidance: "Your symptoms could indicate a medical emergency. Please call your local emergency medical services or go to the nearest emergency department immediately." Do not treat emergencies as routine facility lookup requests.
+
+HANDOFF CONTEXT & GREETING
+The user has already explained their request before being handed off to you. Do NOT ask them to repeat the entire problem. Introduce yourself naturally, acknowledge the context passed to you, and proceed directly to assist them.
+
+TOOLS
+Use lookup_healthcare_facility when the user asks for nearby clinics, PHCs, hospitals, or facility details. State only information returned by tool results or provided by the user. If the tool fails or returns no results, state that you could not verify the facility information right now instead of guessing.
+
+LANGUAGE
+Mirror the user's language. If the user speaks Hindi, respond in natural Hindi using Devanagari script. If English, respond in English.
+
+CONVERSATION STYLE
+Concise (under 80 words), friendly, professional, empathetic, natural. No markdown, no emojis.
+
+HAND-BACK / RETURN TO MEDISATHI
+If the user asks general healthcare questions, requests a diagnosis, or completes their facility lookup and wants general advice, call transfer_back_to_medisathi to return control to the main MediSathi agent.
+"""
+
+
 class Assistant(Agent):
     def __init__(
         self,
@@ -431,13 +501,22 @@ class Assistant(Agent):
         *,
         outbound_call: bool = False,
         follow_up_reason: str = "",
+        tts_instance: murf.TTS | None = None,
     ) -> None:
         self.user_id = user_id
         self.outbound_call = outbound_call
         self.follow_up_reason = follow_up_reason
         self._end_call_task: asyncio.Task[None] | None = None
         self.memory = CallerMemoryStore()
-        super().__init__(instructions=SYSTEM_PROMPT)
+        main_tts = tts_instance or murf.TTS(
+            voice=MURF_MAIN_VOICE,
+            locale="en-IN",
+            style="Conversation",
+            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
+            text_pacing=True,
+        )
+        super().__init__(instructions=SYSTEM_PROMPT, tts=main_tts)
+
 
     async def on_enter(self) -> None:
         """Look up the caller through the same tool exposed to the LLM before greeting."""
@@ -636,6 +715,179 @@ class Assistant(Agent):
             name=name,
         )
 
+    @function_tool
+    async def transfer_to_clinic_specialist(
+        self,
+        ctx: RunContext,
+        reason: str = "",
+        user_request: str = "",
+        location: str = "",
+        language: str = "",
+    ) -> dict[str, Any]:
+        """Transfer the caller to MediSathi Clinic & Appointment Specialist.
+
+        USE THIS TOOL ONLY WHEN THE USER NEEDS SPECIALIZED HELP WITH:
+        - Finding a clinic, PHC, health center, or hospital
+        - Selecting an appropriate healthcare facility
+        - Facility location, timing, or contact details
+        - Appointment guidance or preparing to contact a clinic
+
+        DO NOT USE THIS TOOL FOR:
+        - General health questions or basic health education
+        - General triage or symptom advice (use assess_symptom_triage)
+        - Diagnosis or medication requests
+        - Red-flag medical emergencies
+        - Human escalation requests (use Day 7 create_escalation instead)
+        """
+        del ctx
+        try:
+            context = {
+                "reason": reason,
+                "user_request": user_request,
+                "location": location,
+                "language": language,
+            }
+            specialist = ClinicSpecialist(user_id=self.user_id, context=context)
+            self.session.say(
+                "I'll connect you with our clinic and appointment specialist. They can help you find the right healthcare facility."
+            )
+            self.session.update_agent(specialist)
+            return {
+                "success": True,
+                "message": "Transferred to MediSathi Clinic & Appointment Specialist.",
+            }
+        except Exception:
+            logger.exception("Handoff to specialist failed")
+            return {
+                "success": False,
+                "message": (
+                    "I couldn't connect you to the clinic specialist right now, "
+                    "but I can still try to help you with the information I have."
+                ),
+            }
+
+    @function_tool
+    async def lookup_healthcare_facility(
+        self,
+        ctx: RunContext,
+        facility_type: str = "",
+        location: str = "",
+    ) -> dict[str, Any]:
+        """Look up verified healthcare facilities, primary health centers (PHCs), clinics, or hospitals."""
+        del ctx
+        return lookup_healthcare_facility(
+            facility_type=facility_type, location=location
+        )
+
+
+class ClinicSpecialist(Agent):
+    def __init__(
+        self,
+        user_id: str = "console-user",
+        *,
+        context: dict[str, Any] | None = None,
+        tts_instance: murf.TTS | None = None,
+    ) -> None:
+        self.user_id = user_id
+        self.context = context or {}
+        self.memory = CallerMemoryStore()
+        specialist_tts = tts_instance or murf.TTS(
+            voice=MURF_SPECIALIST_VOICE,
+            locale="en-IN",
+            style="Conversation",
+            tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
+            text_pacing=True,
+        )
+        super().__init__(
+            instructions=CLINIC_SPECIALIST_SYSTEM_PROMPT,
+            tts=specialist_tts,
+        )
+
+    async def on_enter(self) -> None:
+        user_req = str(self.context.get("user_request", "")).strip()
+        lang = str(self.context.get("language", "")).strip()
+
+        is_hindi = "hindi" in lang.lower() or any(
+            "\u0900" <= c <= "\u097f" for c in user_req
+        )
+        if is_hindi:
+            greeting = (
+                "नमस्ते, मैं MediSathi की क्लिनिक और अपॉइंटमेंट विशेषज्ञ हूँ। मैं आपकी मदद करती हूँ।"
+            )
+        elif user_req:
+            greeting = (
+                f"Namaste, I'm MediSathi's Clinic and Appointment Specialist. "
+                f"I understand you're looking for assistance with {user_req}. Let me help you with that."
+            )
+        else:
+            greeting = (
+                "Namaste, I'm MediSathi's Clinic and Appointment Specialist. "
+                "I understand you're looking for a nearby clinic. Let me help you with that."
+            )
+
+        self.session.say(greeting)
+
+    @function_tool
+    async def lookup_healthcare_facility(
+        self,
+        ctx: RunContext,
+        facility_type: str = "",
+        location: str = "",
+    ) -> dict[str, Any]:
+        """Look up verified healthcare facilities, primary health centers (PHCs), clinics, or hospitals."""
+        del ctx
+        return lookup_healthcare_facility(
+            facility_type=facility_type, location=location
+        )
+
+    @function_tool
+    async def assess_symptom_triage(
+        self,
+        ctx: RunContext,
+        symptoms: str,
+        age_band: str = "",
+        duration: str = "",
+        severity: str = "",
+        red_flag_symptoms: str = "",
+        known_conditions: str = "",
+    ) -> dict[str, Any]:
+        """Assess symptom care urgency if red flags or symptoms are mentioned to the specialist."""
+        del ctx
+        try:
+            return assess_symptom_triage(
+                symptoms=symptoms,
+                age_band=age_band,
+                duration=duration,
+                severity=severity,
+                red_flag_symptoms=red_flag_symptoms,
+                known_conditions=known_conditions,
+            )
+        except Exception:
+            return failure_result()
+
+    @function_tool
+    async def transfer_back_to_medisathi(
+        self,
+        ctx: RunContext,
+        reason: str = "",
+    ) -> dict[str, Any]:
+        """Transfer control back to the main MediSathi agent."""
+        del ctx
+        try:
+            main_agent = Assistant(user_id=self.user_id)
+            self.session.say("I'll connect you back to MediSathi now.")
+            self.session.update_agent(main_agent)
+            return {
+                "success": True,
+                "message": "Transferred back to main MediSathi agent.",
+            }
+        except Exception:
+            logger.exception("Failed to transfer back to main agent")
+            return {
+                "success": False,
+                "message": "Could not transfer back to main agent.",
+            }
+
 
 server = AgentServer()
 
@@ -662,7 +914,7 @@ async def my_agent(ctx: JobContext):
             model="gemini-3.5-flash-lite",
         ),
         tts=murf.TTS(
-            voice="Anisha",
+            voice=MURF_MAIN_VOICE,
             locale="en-IN",
             style="Conversation",
             tokenizer=tokenize.basic.SentenceTokenizer(min_sentence_len=2),
