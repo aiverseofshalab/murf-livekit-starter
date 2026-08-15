@@ -56,15 +56,15 @@ export const APP_CONFIG_DEFAULTS: AppConfig = {
   audioVisualizerColor: '#002cf2',
   // audioVisualizerColorDark: '#1fd5f9',
   audioVisualizerColorShift: 0.3,
-   audioVisualizerBarCount: 5,
+  audioVisualizerBarCount: 5,
   //audioVisualizerType: 'radial',
   audioVisualizerRadialBarCount: 24,
   // audioVisualizerRadialRadius: 100,
   // audioVisualizerType: 'grid',
   // audioVisualizerGridRowCount: 25,
   // audioVisualizerGridColumnCount: 25,
-   //audioVisualizerType: 'wave',
-   audioVisualizerWaveLineWidth: 3,
+  //audioVisualizerType: 'wave',
+  audioVisualizerWaveLineWidth: 3,
   // audioVisualizerType: 'aura',
 
   // agent dispatch configuration

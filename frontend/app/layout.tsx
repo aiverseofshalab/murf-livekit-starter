@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { Inter, Noto_Sans_Devanagari, Plus_Jakarta_Sans } from 'next/font/google';
 import { headers } from 'next/headers';
 import { SosButton } from '@/components/app/sos-button';
@@ -24,6 +25,27 @@ const notoDevanagari = Noto_Sans_Devanagari({
   variable: '--font-hindi',
   display: 'swap',
 });
+
+export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  title: 'MEDISATHI — AI Voice Healthcare Assistant',
+  description:
+    'MEDISATHI is an AI-powered voice healthcare assistant designed to make healthcare information and assistance more accessible through natural voice conversations.',
+  keywords: [
+    'Healthcare',
+    'Voice AI',
+    'LiveKit',
+    'Murf Falcon',
+    'Hindi Healthcare',
+    'Telehealth Triage',
+  ],
+  openGraph: {
+    title: 'MEDISATHI — AI Voice Healthcare Assistant',
+    description:
+      'MEDISATHI is an AI-powered voice healthcare assistant designed to make healthcare information and assistance more accessible through natural voice conversations.',
+    type: 'website',
+  },
+};
 
 interface RootLayoutProps {
   children: React.ReactNode;
