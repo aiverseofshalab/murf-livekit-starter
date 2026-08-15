@@ -6,167 +6,184 @@
 
 :root {
   --radius: 1rem;
-  /* Premium Light-First Healthcare Palette */
-  --background: #f6fbfa;
-  --foreground: #123532;
-  --card: #ffffff;
-  --card-foreground: #123532;
-  --popover: #ffffff;
-  --popover-foreground: #123532;
-  --primary: #0f766e;
-  --primary-foreground: #ffffff;
-  --secondary: #eef7f5;
-  --secondary-foreground: #526c68;
-  --muted: #e7f4f1;
-  --muted-foreground: #78918d;
-  --accent: #e7f4f1;
-  --accent-foreground: #0f766e;
-  --destructive: #dc2626;
-  --border: rgba(15, 118, 110, 0.12);
-  --input: rgba(15, 118, 110, 0.16);
-  --ring: #0f766e;
-}
 
-.dark {
-  /* Enforce Light-First UI as Default Product Identity */
-  --background: #f6fbfa;
-  --foreground: #123532;
-  --card: #ffffff;
-  --card-foreground: #123532;
-  --popover: #ffffff;
-  --popover-foreground: #123532;
-  --primary: #0f766e;
-  --primary-foreground: #ffffff;
-  --secondary: #eef7f5;
-  --secondary-foreground: #526c68;
-  --muted: #e7f4f1;
-  --muted-foreground: #78918d;
-  --accent: #e7f4f1;
-  --accent-foreground: #0f766e;
-  --destructive: #dc2626;
-  --border: rgba(15, 118, 110, 0.12);
-  --input: rgba(15, 118, 110, 0.16);
-  --ring: #0f766e;
+  /* Primary Palette Tokens */
+  --medisathi-teal: #0f766e;
+  --medisathi-dark-teal: #115e59;
+  --medisathi-deep-clinical: #134e4a;
+
+  /* Dark Background & Surfaces */
+  --medisathi-dark-bg: #071b19;
+  --medisathi-dark-sec: #0b2522;
+  --medisathi-dark-surface: #102f2b;
+  --medisathi-dark-elevated: #163a35;
+
+  /* Bright & Light Surfaces */
+  --medisathi-bright-bg: #f7faf9;
+  --medisathi-white-surface: #ffffff;
+  --medisathi-soft-medical: #eef5f3;
+
+  /* Borders */
+  --medisathi-dark-border: #2a4e49;
+  --medisathi-light-border: #d6e5e1;
+
+  /* Typography Colors */
+  --medisathi-text-dark-primary: #f5faf9;
+  --medisathi-text-dark-secondary: #b8cbc8;
+  --medisathi-text-muted: #829a96;
+  --medisathi-text-light-primary: #16302d;
+  --medisathi-text-light-secondary: #526b67;
+
+  /* Accents & Statuses */
+  --medisathi-mint: #5eead4;
+  --medisathi-amber: #d6a756;
+  --medisathi-success: #22c55e;
+  --medisathi-warning: #eab308;
+  --medisathi-urgent: #f97316;
+  --medisathi-critical: #dc2626;
+  --medisathi-info: #38bdf8;
 }
 
 @theme inline {
-  --font-serif: var(--font-dm-serif), Georgia, serif;
-  --font-sans: var(--font-sans), system-ui, sans-serif;
-  --font-mono: var(--font-commit-mono), monospace;
-
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-
-  /* MediSathi Light Healthcare Tokens */
-  --color-medisathi-bg: #f6fbfa;
-  --color-medisathi-bg-secondary: #eef7f5;
-  --color-medisathi-surface: #ffffff;
-  --color-medisathi-surface-soft: #e7f4f1;
-  --color-medisathi-teal: #0f766e;
-  --color-medisathi-teal-hover: #115e59;
-  --color-medisathi-teal-dark: #134e4a;
-  --color-medisathi-text: #123532;
-  --color-medisathi-text-secondary: #526c68;
-  --color-medisathi-text-muted: #78918d;
-  --color-medisathi-border: rgba(15, 118, 110, 0.12);
-  --color-medisathi-mint: #5eead4;
-  --color-medisathi-amber: #d6a756;
+  --font-serif: var(--font-heading), Plus Jakarta Sans, sans-serif;
+  --font-sans: var(--font-sans), Inter, system-ui, sans-serif;
+  --font-hindi: var(--font-hindi), Noto Sans Devanagari, sans-serif;
 }
 
 @layer base {
   * {
-    @apply border-[rgba(15,118,110,0.12)] outline-[#0F766E]/30;
+    @apply border-[#D6E5E1] outline-[#0F766E]/30;
   }
   body {
-    background-color: #f6fbfa;
-    color: #123532;
+    background-color: #f7faf9;
+    color: #16302d;
+    font-family: var(--font-sans), Inter, system-ui, sans-serif;
     color-scheme: light;
-    background-image:
-      linear-gradient(135deg, #f6fbfa 0%, #eef7f5 45%, #f9fcfb 100%),
-      radial-gradient(circle at 10% 10%, rgba(94, 234, 212, 0.12), transparent 25rem),
-      radial-gradient(circle at 90% 85%, rgba(15, 118, 110, 0.08), transparent 30rem);
   }
 
   h1,
   h2,
   h3,
-  .font-serif {
-    font-family: var(--font-dm-serif), Georgia, serif;
+  .font-heading {
+    font-family:
+      var(--font-heading),
+      Plus Jakarta Sans,
+      sans-serif;
+  }
+
+  .font-hindi {
+    font-family:
+      var(--font-hindi),
+      Noto Sans Devanagari,
+      sans-serif;
   }
 }
 
-/* Premium Light Glassmorphism Classes */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.75);
+/* Glassmorphism Classes */
+.glass-panel-dark {
+  background: rgba(16, 47, 43, 0.72);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  box-shadow:
-    0 20px 60px rgba(18, 53, 50, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(42, 78, 73, 0.6);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }
 
-.glass-light {
-  background: rgba(255, 255, 255, 0.85);
+.glass-card-dark {
+  background: rgba(16, 47, 43, 0.6);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(15, 118, 110, 0.1);
+  border: 1px solid rgba(42, 78, 73, 0.5);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-medium {
-  background: rgba(255, 255, 255, 0.65);
+.glass-card-dark:hover {
+  transform: translateY(-3px);
+  background: rgba(22, 58, 53, 0.85);
+  border-color: rgba(94, 234, 212, 0.35);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+}
+
+.glass-panel-light {
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(15, 118, 110, 0.12);
+  border: 1px solid rgba(214, 229, 225, 0.8);
+  box-shadow: 0 16px 40px rgba(22, 48, 45, 0.04);
+}
+
+.glass-card-light {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(214, 229, 225, 0.8);
+  box-shadow: 0 8px 24px rgba(22, 48, 45, 0.03);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-light:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(15, 118, 110, 0.3);
+  box-shadow: 0 16px 36px rgba(22, 48, 45, 0.08);
+}
+
+/* Fallback utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(214, 229, 225, 0.8);
+  box-shadow: 0 16px 40px rgba(22, 48, 45, 0.04);
 }
 
 .glass-card {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(15, 118, 110, 0.12);
-  box-shadow: 0 10px 30px rgba(18, 53, 50, 0.04);
+  border: 1px solid rgba(214, 229, 225, 0.8);
+  box-shadow: 0 8px 24px rgba(22, 48, 45, 0.03);
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.glass-card:hover {
-  transform: translateY(-4px);
-  background: rgba(255, 255, 255, 0.95);
-  border-color: rgba(15, 118, 110, 0.25);
-  box-shadow: 0 20px 45px rgba(18, 53, 50, 0.09);
+.glass-light {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(214, 229, 225, 0.8);
 }
 
-/* Signature Microphone Breathing Animations */
+/* Animations */
 @keyframes breathingPulse {
   0%,
   100% {
     transform: scale(1);
-    opacity: 0.35;
+    opacity: 0.4;
   }
   50% {
-    transform: scale(1.1);
-    opacity: 0.1;
+    transform: scale(1.12);
+    opacity: 0.15;
+  }
+}
+
+@keyframes mintWavePulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(94, 234, 212, 0.2);
+  }
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 40px rgba(94, 234, 212, 0.45);
   }
 }
 
 .animate-pulse-ring {
   animation: breathingPulse 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.animate-mint-pulse {
+  animation: mintWavePulse 2.5s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

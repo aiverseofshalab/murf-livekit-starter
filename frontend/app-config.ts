@@ -34,8 +34,9 @@ export interface AppConfig {
 
 export const APP_CONFIG_DEFAULTS: AppConfig = {
   companyName: 'MediSathi',
-  pageTitle: 'MediSathi | Your Friendly AI Health Companion',
-  pageDescription: 'Simple, general health information and guidance by voice.',
+  pageTitle: 'MediSathi | Healthcare support through conversation',
+  pageDescription:
+    'An AI-powered voice healthcare assistant for accessible general health information and assistance.',
 
   supportsChatInput: true,
   supportsVideoInput: false,
@@ -43,27 +44,27 @@ export const APP_CONFIG_DEFAULTS: AppConfig = {
   isPreConnectBufferEnabled: true,
 
   logo: '/murf-logo.svg',
-  accent: '#0f8b8d',
+  accent: '#0F766E',
   logoDark: '/murf-logo-dark.svg',
-  accentDark: '#2dd4bf',
+  accentDark: '#0F766E',
   startButtonText: 'Start Conversation',
 
   // optional: audio visualization configuration
   audioVisualizerType: 'aura',
-  audioVisualizerColor: '#0f8b8d',
-  audioVisualizerColorDark: '#2dd4bf',
-  // audioVisualizerColor: '#002cf2',
+  //audioVisualizerColor: '#0F766E',
+  audioVisualizerColorDark: '#0F766E',
+  audioVisualizerColor: '#002cf2',
   // audioVisualizerColorDark: '#1fd5f9',
-  // audioVisualizerColorShift: 0.3,
-  // audioVisualizerBarCount: 5,
-  // audioVisualizerType: 'radial',
-  // audioVisualizerRadialBarCount: 24,
+  audioVisualizerColorShift: 0.3,
+   audioVisualizerBarCount: 5,
+  //audioVisualizerType: 'radial',
+  audioVisualizerRadialBarCount: 24,
   // audioVisualizerRadialRadius: 100,
   // audioVisualizerType: 'grid',
   // audioVisualizerGridRowCount: 25,
   // audioVisualizerGridColumnCount: 25,
-  // audioVisualizerType: 'wave',
-  // audioVisualizerWaveLineWidth: 3,
+   //audioVisualizerType: 'wave',
+   audioVisualizerWaveLineWidth: 3,
   // audioVisualizerType: 'aura',
 
   // agent dispatch configuration

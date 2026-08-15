@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { HeartPulse, Mic, PhoneOff, Sparkles, Volume2 } from 'lucide-react';
+import { Mic, PhoneOff, Sparkles, Volume2 } from 'lucide-react';
 import { useAgent, useSessionContext, useSessionMessages } from '@livekit/components-react';
 import { AgentChatTranscript } from '@/components/agents-ui/agent-chat-transcript';
+import { MediSathiLogo } from '@/components/app/medisathi-logo';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/shadcn/utils';
 import { AudioVisualizer } from './audio-visualizer';
@@ -58,77 +59,86 @@ export function AgentSessionView_01({
 
   const speaking = agent.state === 'speaking';
   const listening = agent.state === 'listening' || agent.state === 'pre-connect-buffering';
+  const thinking = agent.state === 'thinking';
   const waiting = !speaking && !listening;
 
   const statusTitle = speaking
     ? `${activeAgentName} is speaking`
     : listening
       ? 'Listening to you'
-      : `Connecting to ${activeAgentName}...`;
+      : thinking
+        ? 'Thinking...'
+        : `Connecting to ${activeAgentName}...`;
 
   const statusCopy = speaking
     ? `Please wait while ${activeAgentName} responds...`
     : listening
       ? "Go ahead, I'm listening..."
-      : 'Preparing a safe, private voice connection.';
+      : thinking
+        ? 'MediSathi is preparing a thoughtful response.'
+        : 'Preparing a safe, private voice connection.';
 
   return (
     <section
       ref={ref}
       className={cn(
-        'relative min-h-screen overflow-y-auto bg-[#F6FBFA] px-4 py-6 text-[#123532] sm:px-6',
+        'relative min-h-screen overflow-y-auto bg-[#071B19] px-4 py-6 text-[#F5FAF9] antialiased sm:px-6',
         className
       )}
       {...props}
     >
-      <header className="mx-auto flex max-w-5xl items-center justify-between border-b border-[rgba(15,118,110,0.12)] pb-4">
+      {/* Background Soft Atmospheric Lighting */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        <div className="absolute top-1/4 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[#0F766E]/15 blur-3xl" />
+        <div className="absolute right-10 bottom-10 size-72 rounded-full bg-[#5EEAD4]/10 blur-2xl" />
+      </div>
+
+      <header className="relative z-10 mx-auto flex max-w-5xl items-center justify-between border-b border-[#2A4E49] pb-4">
         <div className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-xl border border-[rgba(15,118,110,0.16)] bg-[#0F766E] text-[#FFFFFF]">
-            <HeartPulse />
-          </span>
+          <MediSathiLogo size={40} variant="dark" showText={true} />
           <div className="text-left">
-            <strong className="block font-serif text-lg text-[#123532]">
-              {isSpecialistActive ? 'MediSathi Clinic Specialist' : 'MediSathi'}
+            <strong className="font-heading block text-lg text-[#F5FAF9]">
+              {isSpecialistActive ? 'MEDISATHI Clinic Specialist' : 'MEDISATHI'}
             </strong>
-            <span className="text-xs text-[#78918D]">
+            <span className="text-xs text-[#B8CBC8]">
               {isSpecialistActive
                 ? 'Clinic & Appointment Specialist (Male Voice: Karan)'
-                : 'Your Friendly AI Health Companion (Female Voice: Anisha)'}
+                : 'Your AI Voice Health Companion (Female Voice: Anisha)'}
             </span>
           </div>
         </div>
         <span
           className={cn(
-            'rounded-full border px-3.5 py-1 text-xs font-semibold transition',
+            'rounded-full border px-3.5 py-1 text-xs font-bold transition',
             isSpecialistActive
-              ? 'border-[#D6A756] bg-[#FFFFFF] text-[#D6A756]'
-              : 'border-[rgba(15,118,110,0.2)] bg-[#E7F4F1] text-[#0F766E]'
+              ? 'border-[#D6A756] bg-[#163A35] text-[#D6A756]'
+              : 'border-[#5EEAD4]/40 bg-[#102F2B] text-[#5EEAD4]'
           )}
         >
           {isSpecialistActive ? '● Specialist Active' : '● Live Voice Session'}
         </span>
       </header>
 
-      <main className="mx-auto flex max-w-3xl flex-col items-center py-8 text-center sm:py-12">
-        <div className="glass-panel w-full rounded-3xl p-6 shadow-xl sm:p-10">
+      <main className="relative z-10 mx-auto flex max-w-3xl flex-col items-center py-8 text-center sm:py-12">
+        <div className="glass-panel-dark w-full rounded-3xl border border-[#2A4E49] bg-[#102F2B]/90 p-6 shadow-2xl sm:p-10">
           <div
             className={cn(
               'relative mx-auto grid size-64 place-items-center sm:size-80',
-              listening && 'text-[#0F766E]',
-              speaking && 'text-[#0F766E]'
+              listening && 'text-[#5EEAD4]',
+              speaking && 'text-[#5EEAD4]'
             )}
           >
             <div
               className={cn(
-                'animate-pulse-ring absolute inset-4 rounded-full border border-[rgba(15,118,110,0.2)] bg-[#0F766E]/5',
+                'animate-pulse-ring absolute inset-4 rounded-full border border-[#5EEAD4]/30 bg-[#5EEAD4]/5',
                 waiting && 'hidden'
               )}
             />
-            <div className="relative z-10 grid size-40 place-items-center rounded-full border border-[rgba(15,118,110,0.2)] bg-[#FFFFFF] shadow-2xl sm:size-48">
+            <div className="relative z-10 grid size-40 place-items-center rounded-full border border-[#2A4E49] bg-[#163A35] shadow-2xl sm:size-48">
               <AudioVisualizer
                 isChatOpen={false}
                 audioVisualizerType={audioVisualizerType}
-                audioVisualizerColor={audioVisualizerColor || '#0f766e'}
+                audioVisualizerColor={audioVisualizerColor || '#5EEAD4'}
                 audioVisualizerColorShift={audioVisualizerColorShift}
                 audioVisualizerBarCount={audioVisualizerBarCount}
                 audioVisualizerRadialBarCount={audioVisualizerRadialBarCount}
@@ -140,26 +150,28 @@ export function AgentSessionView_01({
               />
             </div>
           </div>
+
           <div aria-live="polite" className="mt-4">
-            <div className="mb-3 flex justify-center text-[#0F766E]">
+            <div className="mb-3 flex justify-center text-[#5EEAD4]">
               {speaking ? (
-                <Volume2 className="size-7 animate-pulse" />
+                <Volume2 className="size-8 animate-bounce text-[#5EEAD4]" />
               ) : listening ? (
-                <Mic className="size-7 animate-pulse" />
+                <Mic className="size-8 animate-pulse text-[#5EEAD4]" />
               ) : (
-                <Sparkles className="size-7 animate-pulse text-[#D6A756]" />
+                <Sparkles className="size-8 animate-spin text-[#D6A756]" />
               )}
             </div>
-            <h1 className="font-serif text-2xl font-bold tracking-tight text-[#123532] sm:text-3xl">
+            <h1 className="font-heading text-2xl font-bold tracking-tight text-[#F5FAF9] sm:text-3xl">
               {statusTitle}
             </h1>
-            <p className="mt-2 text-xs text-[#526C68]">{statusCopy}</p>
+            <p className="mt-2 text-xs text-[#B8CBC8]">{statusCopy}</p>
           </div>
+
           <div className="mx-auto mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row">
             <Button
               variant="outline"
               onClick={() => setTranscriptOpen((open) => !open)}
-              className="rounded-xl border-[rgba(15,118,110,0.16)] bg-[#FFFFFF] text-[#0F766E] hover:bg-[#EEF7F5]"
+              className="rounded-xl border-[#2A4E49] bg-[#163A35] text-[#5EEAD4] hover:bg-[#102F2B]"
             >
               {transcriptOpen ? 'Hide Transcript' : 'View Transcript'}
             </Button>
@@ -171,23 +183,25 @@ export function AgentSessionView_01({
               <PhoneOff className="mr-2 size-4" /> End Conversation
             </Button>
           </div>
+
           {transcriptOpen && (
             <section
               aria-label="Conversation transcript"
-              className="mx-auto mt-6 h-60 w-full max-w-xl overflow-hidden rounded-2xl border border-[rgba(15,118,110,0.12)] bg-[#FFFFFF] text-left shadow-sm"
+              className="mx-auto mt-6 h-60 w-full max-w-xl overflow-hidden rounded-2xl border border-[#2A4E49] bg-[#071B19] text-left shadow-lg"
             >
-              <div className="border-b border-[rgba(15,118,110,0.12)] bg-[#EEF7F5] px-4 py-2.5 text-xs font-semibold text-[#78918D]">
+              <div className="border-b border-[#2A4E49] bg-[#102F2B] px-4 py-2.5 text-xs font-semibold text-[#B8CBC8]">
                 Live Transcript
               </div>
               <AgentChatTranscript
                 agentState={agent.state}
                 messages={messages}
-                className="h-48 text-xs [&>div>div]:px-4 [&>div>div]:py-2"
+                className="h-48 text-xs text-[#F5FAF9] [&>div>div]:px-4 [&>div>div]:py-2"
               />
             </section>
           )}
-          <p className="mx-auto mt-8 max-w-2xl text-[11px] leading-5 text-[#78918D]">
-            ⚕️ MediSathi provides general health information only. It does not diagnose conditions
+
+          <p className="mx-auto mt-8 max-w-2xl text-[11px] leading-5 text-[#829A96]">
+            ⚕️ MEDISATHI provides general health information only. It does not diagnose conditions
             or replace a qualified healthcare professional.
           </p>
         </div>

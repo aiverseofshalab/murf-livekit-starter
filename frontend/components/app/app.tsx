@@ -11,11 +11,15 @@ import { ViewController } from '@/components/app/view-controller';
 import { Toaster } from '@/components/ui/sonner';
 import { useAgentErrors } from '@/hooks/useAgentErrors';
 import { useDebugMode } from '@/hooks/useDebug';
+import { LanguageProvider } from '@/lib/language-context';
 import { getSandboxTokenSource } from '@/lib/utils';
 
 const MEDISATHI_USER_ID_KEY = 'medisathi_user_id';
 
 function getMediSathiUserId(): string {
+  if (typeof window === 'undefined') {
+    return 'server-user';
+  }
   const savedId = window.localStorage.getItem(MEDISATHI_USER_ID_KEY);
   if (savedId) return savedId;
 
@@ -59,26 +63,28 @@ export function App({ appConfig }: AppProps) {
   );
 
   return (
-    <AgentSessionProvider session={session}>
-      <AppSetup />
-      <main className="grid h-svh grid-cols-1 place-content-center">
-        <ViewController appConfig={appConfig} />
-      </main>
-      <StartAudioButton label="Start Audio" />
-      <Toaster
-        icons={{
-          warning: <WarningIcon weight="bold" />,
-        }}
-        position="top-center"
-        className="toaster group"
-        style={
-          {
-            '--normal-bg': 'var(--popover)',
-            '--normal-text': 'var(--popover-foreground)',
-            '--normal-border': 'var(--border)',
-          } as React.CSSProperties
-        }
-      />
-    </AgentSessionProvider>
+    <LanguageProvider>
+      <AgentSessionProvider session={session}>
+        <AppSetup />
+        <main className="min-h-screen w-full">
+          <ViewController appConfig={appConfig} />
+        </main>
+        <StartAudioButton label="Start Audio" />
+        <Toaster
+          icons={{
+            warning: <WarningIcon weight="bold" />,
+          }}
+          position="top-center"
+          className="toaster group"
+          style={
+            {
+              '--normal-bg': 'var(--popover)',
+              '--normal-text': 'var(--popover-foreground)',
+              '--normal-border': 'var(--border)',
+            } as React.CSSProperties
+          }
+        />
+      </AgentSessionProvider>
+    </LanguageProvider>
   );
 }
